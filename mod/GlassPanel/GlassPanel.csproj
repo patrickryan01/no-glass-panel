@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>GlassPanel</AssemblyName>
+    <Product>NO Glass Panel</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <DebugType>portable</DebugType>
+    <!-- Point this at your Nuclear Option install to build. Override with:
+         dotnet build -c Release -p:NuclearOptionDir="X:\path\to\Nuclear Option" -->
+    <NuclearOptionDir Condition="'$(NuclearOptionDir)'==''">D:\SteamLibrary\steamapps\common\Nuclear Option</NuclearOptionDir>
+    <GameManaged>$(NuclearOptionDir)\NuclearOption_Data\Managed</GameManaged>
+    <BepInExCore>$(NuclearOptionDir)\BepInEx\core</BepInExCore>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- .NET Framework 4.7.2 reference assemblies (no full targeting pack needed on the box) -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BepInEx -->
+    <Reference Include="BepInEx"><HintPath>$(BepInExCore)\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(BepInExCore)\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <!-- Game + Unity -->
+    <Reference Include="Assembly-CSharp"><HintPath>$(GameManaged)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManaged)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameManaged)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GameManaged)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <!-- Unit : Mirage.NetworkBehaviour (netcode) — needed to resolve the base type -->
+    <Reference Include="Mirage"><HintPath>$(GameManaged)\Mirage.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mirage.SocketLayer"><HintPath>$(GameManaged)\Mirage.SocketLayer.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The panel page ships inside the DLL and is served over HTTP -->
+    <EmbeddedResource Include="..\..\web\index.html">
+      <LogicalName>GlassPanel.index.html</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nuclear Option — Glass Panel</title>
 <style>
   /* ── Single visual world: F-35 HMD glass. Dark cockpit only, by design. ── */
@@ -108,6 +113,8 @@
   @media (max-width:900px){ .main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
     .rail{grid-row:auto} .bottom{grid-row:auto;grid-template-columns:1fr} #pfd{min-height:320px} }
 </style>
+</head>
+<body>
 
 <div class="frame">
   <div class="status">
@@ -370,4 +377,11 @@ function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now;
   drawPFD(); drawRadar(); renderDOM(); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.addEventListener('resize',()=>{drawPFD();drawRadar();});
+// When the mod serves this page over HTTP, auto-connect to the live feed on the same host.
+// Opened as a local file:// it silently stays on the simulation.
+if(location.protocol==='http:'||location.protocol==='https:'){
+  connectLive((location.protocol==='https:'?'wss://':'ws://')+location.host);
+}
 </script>
+</body>
+</html>

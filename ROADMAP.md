@@ -50,12 +50,13 @@ Stand up the toolchain and extract the **actual** telemetry field names from the
 
 Turn the verified symbols into a plugin that reads the game and serves the panel.
 
-- [ ] BepInEx plugin project (`mod/`) referencing the real game DLLs.
-- [ ] Read verified telemetry once per frame; assemble the `docs/TELEMETRY.md` JSON.
-- [ ] Host a lightweight WebSocket server; broadcast to any connected panel at a configurable rate.
-- [ ] BepInEx config: bind address, port, update Hz, unit preferences.
+- [x] BepInEx plugin project (`mod/`) referencing the real game DLLs.
+- [x] Read verified telemetry once per frame; assemble the `docs/TELEMETRY.md` JSON.
+- [x] Host a lightweight WebSocket server (also serves the panel page); broadcast at a configurable rate.
+- [x] BepInEx config: port + update Hz. (binds all interfaces; unit prefs later)
+- [x] **Compiles clean against the real assemblies** — 0 warnings, 0 errors. The symbols are real by construction.
 
-**DoD:** plugin loads clean, logs "serving on ws://…:PORT", and a browser on the same PC receives live JSON.
+**DoD:** plugin builds and installs to `BepInEx/plugins`. Runtime proof (loads in-game, panel receives live JSON) is the first task of Phase 4 — needs the game actually running.
 
 ---
 
