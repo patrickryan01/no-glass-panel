@@ -26,6 +26,18 @@ Also I'm making videos and a real glass cockpit on a second screen looks unreaso
 
 ---
 
+## 📦 Install the mod (on the gaming PC)
+
+**One line. Standalone.** Finds your Nuclear Option install, drops in BepInEx + the plugin, opens the port. In PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/patrickryan01/no-glass-panel/main/install.ps1 | iex
+```
+
+Rather do it by hand? Grab `GlassPanel.dll` from the [latest release](https://github.com/patrickryan01/no-glass-panel/releases/latest), make sure [BepInEx](https://docs.bepinex.dev) (5.x, Mono x64) is in the game folder, and drop the DLL into `Nuclear Option\BepInEx\plugins\`.
+
+The **laptop needs nothing installed** — it's just a browser pointed at the gaming PC (`http://<gaming-pc-ip>:8787`).
+
 ## 🖥️ Run the panel (right now, no live game needed)
 
 ```
