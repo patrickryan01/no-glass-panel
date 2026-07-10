@@ -1,0 +1,23 @@
+# ── .NET / BepInEx mod build output ──
+mod/**/bin/
+mod/**/obj/
+*.user
+*.suo
+.vs/
+
+# ── Game reference DLLs — do NOT redistribute; resolved locally at build time ──
+mod/lib/
+*.dll
+
+# ── Decompiler / scratch output ──
+decompiled/
+*.il
+
+# ── IDE / editor ──
+.idea/
+*.swp
+
+# ── OS cruft ──
+.DS_Store
+Thumbs.db
+desktop.ini
