@@ -36,11 +36,11 @@ A self-contained glass cockpit that runs today on a simulation, so the design an
 
 Stand up the toolchain and extract the **actual** telemetry field names from the game. This is the "no guessing" phase.
 
-- [ ] Install .NET SDK + set up the BepInEx dev environment.
+- [x] Install .NET SDK 8 + decompiler (`ilspycmd`) — build & inspection toolchain up.
 - [ ] Install BepInEx into the Nuclear Option install (test rig).
-- [ ] Decompile `Assembly-CSharp.dll` and identify the real ownship/aircraft classes and fields: airspeed, altitude, AGL, heading, pitch/roll, AoA, G, fuel, throttle, gear, selected weapon + ammo, countermeasures, radar contacts.
-- [ ] Cross-verify every field against NOBlackBox's source so we're standing on a proven read, not a hopeful one.
-- [ ] Write it all down in `docs/GAME_SYMBOLS.md` — the verified map from game field → contract field.
+- [x] Decompile `Assembly-CSharp.dll` and identify the real ownship/aircraft classes and fields: airspeed, altitude, AGL, heading, pitch/roll, AoA, fuel, throttle, gear, selected weapon + ammo, countermeasures, targets.
+- [x] Cross-verify every field against NOBlackBox's source so we're standing on a proven read, not a hopeful one.
+- [x] Write it all down in `docs/GAME_SYMBOLS.md` — the verified map from game member → contract field.
 
 **DoD:** a documented, verified list of exactly which game members produce each telemetry value. Nothing in it is a guess.
 
