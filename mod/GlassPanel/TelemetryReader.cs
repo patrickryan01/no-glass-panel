@@ -80,6 +80,7 @@ namespace GlassPanel
             p.Add(BuildDamage(ac));
             p.Add("\"chat\":[" + ChatBridge.BuildJson() + "]");
             p.Add("\"datalink\":[" + BuildDatalink(ac) + "]");
+            p.Add(BuildNav(ac));
 
             return "{" + string.Join(",", p.ToArray()) + "}";
         }
@@ -247,6 +248,29 @@ namespace GlassPanel
             }
             catch { }
             return "\"damage\":{" + Num("hull", hull) + "}";
+        }
+
+        // Nearest friendly airbase — bearing/range for RTB steering.
+        private static string BuildNav(Aircraft ac)
+        {
+            try
+            {
+                var hq = ac.NetworkHQ;
+                if (hq != null)
+                {
+                    Airbase ab;
+                    if (hq.TryGetNearestAirbase(ac.transform.position, out ab) && ab != null && ab.center != null)
+                    {
+                        Vector3 d = ab.center.position - ac.transform.position;
+                        float rng = d.magnitude;
+                        float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
+                        string abName = ab.NetworknetworkUniqueName;
+                        return "\"nav\":{" + Str("name", string.IsNullOrEmpty(abName) ? "BASE" : abName) + "," + Num("brg", brg) + "," + Num("rng", rng) + "}";
+                    }
+                }
+            }
+            catch { }
+            return "\"nav\":null";
         }
 
         // ── tiny JSON helpers, invariant culture ──

@@ -89,6 +89,8 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 
 **v1.5.0:** `datalink` — `[{ brg:deg, rng:m, type:'H'|'F' }]`, the faction HQ's shared track picture (`FactionHQ.trackingDatabase`), drawn dashed/dimmer on the map to distinguish it from own-sensor `contacts`. And `rwr` now also carries radars *painting* you (`band:"R"`, `lock:1`, from `Aircraft.onRadarWarning`) alongside missile launches (`band:"M"`, `lock:2`).
 
+**v1.6.0:** `nav` — `{ name:string, brg:deg, rng:m }` or `null`, the nearest friendly airbase for RTB steering (`FactionHQ.TryGetNearestAirbase` → `Airbase.center` Transform). Drawn as a home-plate marker + steer line on the map.
+
 The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
 
 ## Units note
