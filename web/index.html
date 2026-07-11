@@ -197,9 +197,9 @@ const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:
   peakG:1,_hasRWR:false,_hasChat:false,_lockRng:null,_lockT:0,vc:0};
 
 function applyTelemetry(t){Object.assign(S,t);if(t.inputs)S.inputs=Object.assign(S.inputs,t.inputs);
-  if(t.rwr!==undefined)S._hasRWR=true;if(t.chat!==undefined)S._hasChat=true;S.live=true;setConn(true);}
+  if(t.rwr!==undefined)S._hasRWR=true;if(t.chat!==undefined)S._hasChat=true;S.live=true;S._liveT=performance.now();setConn(true);}
 function setConn(l){const p=document.getElementById('conn');p.className='pill '+(l?'live':'sim');document.getElementById('connTxt').textContent=l?'LIVE':'SIM';}
-function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);if(!S._rc)S._rc=setTimeout(()=>{S._rc=null;connectLive(u);},2000);};
+function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>{};ws.onclose=()=>{S.live=false;setConn(false);if(!S._rc)S._rc=setTimeout(()=>{S._rc=null;connectLive(u);},2000);};
   ws.onmessage=e=>{try{applyTelemetry(JSON.parse(e.data));}catch(_){}};}catch(_){}}
 
 /* sim */
@@ -388,7 +388,9 @@ function dom(){S.peakG=Math.max(S.peakG,S.g||0);
   else log.innerHTML='<span class="empty">— standby —</span>';}
 function esc(s){return(''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
 
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!S.live)sim(dt);trackVc(dt);
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(S.live&&now-S._liveT>1200){S.live=false;setConn(false);} /* feed went stale (mission ended / menu) -> fall back to demo */
+  if(!S.live)sim(dt);trackVc(dt);
   hud();map();radar();rwr();machDial();damage();dom();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 

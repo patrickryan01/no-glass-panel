@@ -6,7 +6,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "RyanEngineering"
 name = "GlassPanel"
-versionNumber = "1.8.0"
+versionNumber = "1.8.1"
 description = "F-35-style HMD glass panel on a second screen. Live telemetry over your LAN."
 websiteUrl = "https://github.com/patrickryan01/no-glass-panel"
 containsNsfwContent = false

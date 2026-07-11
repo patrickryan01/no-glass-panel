@@ -4,7 +4,7 @@
 
 [![thunderstore](https://img.shields.io/thunderstore/v/RyanEngineering/GlassPanel?style=flat-square&color=39d6ff&label=thunderstore)](https://thunderstore.io/c/nuclear-option/p/RyanEngineering/GlassPanel/)
 [![downloads](https://img.shields.io/thunderstore/dt/RyanEngineering/GlassPanel?style=flat-square&color=4ee08c)](https://thunderstore.io/c/nuclear-option/p/RyanEngineering/GlassPanel/)
-![status](https://img.shields.io/badge/status-v1.8.0%20·%20beta-ffb020?style=flat-square)
+![status](https://img.shields.io/badge/status-v1.8.1%20·%20beta-ffb020?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-39d6ff?style=flat-square)
 ![stack](https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20C%23%2FBepInEx-79f0cf?style=flat-square)
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)

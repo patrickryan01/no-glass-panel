@@ -4,7 +4,7 @@ The plan, phased. Every phase has a **Definition of Done** so "done" means done,
 
 Guiding rule for the whole thing: **no guessing at game internals.** Anything that reads Nuclear Option's state gets verified against the actual compiled assembly and cross-checked with a known-good reference ([NOBlackBox](https://github.com/KopterBuzz/NOBlackBox)) before it ships. Real code or no code.
 
-**Status:** all five phases done. It's on [Thunderstore](https://thunderstore.io/c/nuclear-option/p/RyanEngineering/GlassPanel/) at **v1.8.0**, in beta, and it flies. Everything past Phase 5 is [where it went after shipping](#-after-shipping--v11--v18).
+**Status:** all five phases done. It's on [Thunderstore](https://thunderstore.io/c/nuclear-option/p/RyanEngineering/GlassPanel/) at **v1.8.1**, in beta, and it flies. Everything past Phase 5 is [where it went after shipping](#-after-shipping--v11--v18).
 
 ---
 
@@ -99,6 +99,7 @@ The five phases were the skeleton. Everything below is muscle bolted on after it
 - [x] **v1.6** — nav / RTB steering to nearest airbase.
 - [x] **v1.7** — cockpit rework + aircraft-aware battle-damage display.
 - [x] **v1.8** — mission objectives: live checklist over the map.
+- [x] **v1.8.1** — panel falls back to the demo when the live feed drops (mission end / menu), and the `SIM`/`LIVE` pill now tracks real data flow instead of just the socket.
 
 ---
 
