@@ -95,6 +95,16 @@
     border:1px solid var(--hair);border-radius:10px;background:#070f12}
   #damage.show{display:block}
 
+  .ctrl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .ctrl button{background:#0c1820;border:1px solid var(--hair);border-radius:7px;color:var(--ink);
+    font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.05em;padding:10px 6px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .ctrl button:active{background:#123024;border-color:var(--green);color:var(--green)}
+  /* per-device single-module views: ?view=hud|map|radar|rwr */
+  body.view-hud .wrap>*:not(.hud),body.view-map .wrap>*:not(#map),
+  body.view-radar .wrap>*:not(#radar),body.view-rwr .wrap>*:not(#rwr){display:none}
+  body[class*="view-"] .wrap{grid-template-columns:1fr!important;grid-template-rows:1fr!important;grid-template-areas:"solo"!important}
+  body[class*="view-"] .wrap>*{grid-area:solo!important}
   @media (prefers-reduced-motion:reduce){.lamp.on.w{animation:none}}
   @media (max-width:880px){
     body{overflow:auto}
@@ -131,7 +141,7 @@
     <div class="cell"><div class="k">Altitude</div><div class="v"><span id="alt">—</span> <small>FT</small></div><div class="m" id="altm">— m</div></div>
     <div class="cell"><div class="k">Vert Spd</div><div class="v" id="vs">—</div><div class="m" id="vsm">— m/s</div></div>
     <div class="cell"><div class="k">G · Peak</div><div class="v" id="gv">—</div><div class="m">AoA <span id="aoaS">—</span>°</div></div>
-    <div class="cell"><div class="k">Throttle</div><div class="v" id="thr">—</div><div class="m" id="ralt">RALT — ft</div></div>
+    <div class="cell"><div class="k">Throttle · Eng</div><div class="v" id="thr">—</div><div class="m" id="eng">— kN</div></div>
     <div class="cell"><div class="k">Target · Vc</div><div class="v" id="tgt">—</div><div class="m" id="fuel">FUEL —</div></div>
   </div>
 
@@ -143,6 +153,10 @@
       <div><div class="t">FLARE <b id="flN">—</b></div><div class="bar"><i id="flB" style="background:linear-gradient(90deg,#ff7a2e,#ffb020)"></i></div></div>
       <div><div class="t">CHAFF <b id="chN">—</b></div><div class="bar"><i id="chB" style="background:linear-gradient(90deg,#2e9dff,#7ad6ff)"></i></div></div>
     </div>
+    <div class="ctrl">
+      <button data-cmd="wpn-">◀ WPN</button><button data-cmd="wpn+">WPN ▶</button>
+      <button data-cmd="gear">GEAR</button><button data-cmd="cm">FLARE</button>
+    </div>
   </div>
 
   <div class="comms"><span class="lbl">Comms</span><div class="log" id="commsLog"><span class="empty">— standby —</span></div><input id="chatIn" placeholder="message → game chat…" autocomplete="off" maxlength="200"><button id="chatSend">SEND</button></div>
@@ -152,7 +166,7 @@
 
 <script>
 /* telemetry contract — docs/TELEMETRY.md. Mod sends imperial (kt/ft/ft-min); metric derived here. */
-const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:0,roll:0,aoa:5,g:1,throttle:.7,
+const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:0,roll:0,aoa:5,g:1,throttle:.7,engine:120,
   gear:false,fuelKg:4200,fuelMax:5000,fuelSec:1900,weaponIndex:0,
   weapons:[{name:'GAU CANNON',ammo:480,unit:'RDS'},{name:'AIM‑54C',ammo:4,unit:'MSL'},{name:'AGM STRIKE',ammo:6,unit:'MSL'},{name:'MK82 ×8',ammo:8,unit:'BMB'},{name:'☢ NUCLEAR',ammo:1,unit:'SPL'}],
   flares:60,chaff:60,flaresMax:60,chaffMax:60,contacts:[],rwr:[],chat:[],damage:null,
@@ -162,7 +176,7 @@ const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:
 function applyTelemetry(t){Object.assign(S,t);if(t.inputs)S.inputs=Object.assign(S.inputs,t.inputs);
   if(t.rwr!==undefined)S._hasRWR=true;if(t.chat!==undefined)S._hasChat=true;S.live=true;setConn(true);}
 function setConn(l){const p=document.getElementById('conn');p.className='pill '+(l?'live':'sim');document.getElementById('connTxt').textContent=l?'LIVE':'SIM';}
-function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);};
+function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);if(!S._rc)S._rc=setTimeout(()=>{S._rc=null;connectLive(u);},2000);};
   ws.onmessage=e=>{try{applyTelemetry(JSON.parse(e.data));}catch(_){}};}catch(_){}}
 
 /* sim */
@@ -174,7 +188,7 @@ seed();
 function sim(dt){const t=S.met+=dt;
   S.roll+=((26*Math.sin(t*.13)+8*Math.sin(t*.41))-S.roll)*Math.min(1,dt*1.6);
   S.pitch+=((6*Math.sin(t*.09)+2*Math.sin(t*.7))-S.pitch)*Math.min(1,dt*1.6);
-  S.hdg=(S.hdg+S.roll*.09*dt+360)%360;S.throttle=.72+.24*Math.sin(t*.05);
+  S.hdg=(S.hdg+S.roll*.09*dt+360)%360;S.throttle=.72+.24*Math.sin(t*.05);S.engine=60+S.throttle*120;
   S.ias+=((170+S.throttle*260-S.pitch*5)-S.ias)*Math.min(1,dt*.6);S.tas=S.ias*1.06;S.mach=S.ias/645;
   S.vs=Math.sin(S.pitch*Math.PI/180)*S.ias*101;S.alt=Math.max(400,S.alt+S.vs*dt/60);S.agl=Math.max(50,S.alt-180);
   S.g=Math.max(.2,1/Math.cos(S.roll*Math.PI/180))+(Math.abs(S.pitch)>4?.3:0);
@@ -302,7 +316,7 @@ function dom(){S.peakG=Math.max(S.peakG,S.g||0);
   const gv=document.getElementById('gv');gv.textContent=(S.g||0).toFixed(1)+' ('+(S.peakG).toFixed(1)+')';gv.className='v'+(S.g>7?' red':S.g>5?' amber':'');
   document.getElementById('aoaS').textContent=(S.aoa||0).toFixed(1);
   document.getElementById('thr').textContent=Math.round((S.throttle||0)*100)+'%';
-  document.getElementById('ralt').textContent='RALT '+fmt(S.agl)+' ft';
+  document.getElementById('eng').textContent=(S.engine||0).toFixed(0)+' kN';
   const lk=(S.contacts||[]).find(c=>c.locked);const tg=document.getElementById('tgt');
   tg.textContent=lk?((lk.rng/1000).toFixed(1)+'km '+(S.vc?((S.vc>0?'+':'')+Math.round(S.vc)):'')):'—';tg.className='v'+(lk?' amber':'');
   document.getElementById('fuel').textContent='FUEL '+fmt(S.fuelKg)+'kg';
@@ -330,6 +344,15 @@ function sendChat(){const el=document.getElementById('chatIn');const t=(el.value
 (function(){const el=document.getElementById('chatIn');if(!el)return;
   el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendChat();}});
   const b=document.getElementById('chatSend');if(b)b.addEventListener('click',sendChat);})();
+
+// per-device views + OBS overlay:  ?view=hud|map|radar|rwr   &overlay
+(function(){const q=new URLSearchParams(location.search);const v=q.get('view');
+  if(v)document.body.classList.add('view-'+v);
+  if(q.has('overlay')){document.documentElement.style.background='transparent';document.body.style.background='transparent';}})();
+
+// touchscreen control: buttons -> game commands over the same socket
+function sendCmd(a){if(S._ws&&S._ws.readyState===1)S._ws.send(JSON.stringify({t:'cmd',a:a}));}
+document.querySelectorAll('.ctrl button').forEach(b=>b.addEventListener('click',()=>sendCmd(b.getAttribute('data-cmd'))));
 </script>
 </body>
 </html>

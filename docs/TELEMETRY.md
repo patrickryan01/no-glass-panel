@@ -83,6 +83,10 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 
 **Panel → game (v1.3.0, bi-directional):** the panel can also *send*. Over the same WebSocket it posts `{"t":"chat","all":true,"text":"..."}`; the mod drains it on the main thread and calls `ChatManager.SendChatMessage(text, allChat)`. That's how you type into game chat from the laptop/tablet.
 
+**Panel → game commands (v1.4.0, touchscreen):** the panel also posts `{"t":"cmd","a":"gear|wpn+|wpn-|cm"}` — the mod maps these on the local aircraft to `SetGear(!gearDeployed)`, `weaponManager.NextWeaponStation()` / `PreviousWeaponStation()`, and `countermeasureManager.PopFlares()`. That's the touchscreen MFD control.
+
+**v1.4.0 telemetry additions:** `g` (real, `aircraft.gForce`), `ias` (now air-density corrected from TAS), `engine` (total thrust, kN), and `weapons` now carries the **full loadout** (every station), with `weaponIndex` marking the selected one.
+
 The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
 
 ## Units note

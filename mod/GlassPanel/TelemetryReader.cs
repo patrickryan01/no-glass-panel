@@ -42,9 +42,13 @@ namespace GlassPanel
 
             ControlInputs inp = ac.GetInputs();
 
-            var p = new List<string>(24);
+            // IAS from TAS via ISA density ratio (troposphere).
+            float altM = t.position.GlobalY();
+            float sigma = Mathf.Pow(Mathf.Max(0.05f, 1f - 2.25577e-5f * Mathf.Max(0f, altM)), 4.2561f);
+
+            var p = new List<string>(28);
             p.Add(Num("tas", speed * MS_TO_KN));
-            p.Add(Num("ias", speed * MS_TO_KN));   // TAS as placeholder until air-density IAS lands
+            p.Add(Num("ias", speed * Mathf.Sqrt(sigma) * MS_TO_KN));
             p.Add(Num("mach", speed / 340f));
             p.Add(Num("alt", t.position.GlobalY() * M_TO_FT));
             p.Add(Num("agl", Mathf.Max(0f, ac.radarAlt) * M_TO_FT));
@@ -53,13 +57,16 @@ namespace GlassPanel
             p.Add(Num("pitch", pitch));
             p.Add(Num("roll", roll));
             p.Add(Num("aoa", aoa));
+            p.Add(Num("g", ac.gForce));
+            p.Add(Num("engine", EngineThrustKN(ac)));
             p.Add(Num("throttle", inp.throttle));
             p.Add(Bool("gear", ac.gearDeployed));
             p.Add(Num("fuelKg", ac.GetFuelQuantity()));
             p.Add("\"inputs\":{" + Num("pitch", inp.pitch) + "," + Num("roll", inp.roll) + "," +
                   Num("yaw", inp.yaw) + "," + Num("throttle", inp.throttle) + "}");
-            p.Add("\"weapons\":[" + BuildSelectedWeapon(ac) + "]");
-            p.Add(Int("weaponIndex", 0));
+            int sel;
+            p.Add("\"weapons\":[" + BuildLoadout(ac, out sel) + "]");
+            p.Add(Int("weaponIndex", sel));
 
             int flares = 0, chaff = 0, flaresMax = 0, chaffMax = 0;
             ReadCountermeasures(ac, ref flares, ref chaff, ref flaresMax, ref chaffMax);
@@ -74,6 +81,41 @@ namespace GlassPanel
             p.Add("\"chat\":[" + ChatBridge.BuildJson() + "]");
 
             return "{" + string.Join(",", p.ToArray()) + "}";
+        }
+
+        // Total engine thrust in kN across all engines.
+        private static float EngineThrustKN(Aircraft ac)
+        {
+            try
+            {
+                float sum = 0f;
+                if (ac.engines != null)
+                    foreach (IEngine e in ac.engines) if (e != null) sum += e.GetThrust();
+                return sum / 1000f;
+            }
+            catch { return 0f; }
+        }
+
+        // Full loadout: every weapon station, with the selected one's index.
+        private static string BuildLoadout(Aircraft ac, out int selIndex)
+        {
+            selIndex = 0;
+            try
+            {
+                var stations = ac.weaponStations;
+                if (stations == null) return BuildSelectedWeapon(ac);
+                WeaponStation cur = ac.weaponManager != null ? ac.weaponManager.currentWeaponStation : null;
+                var items = new List<string>();
+                foreach (WeaponStation ws in stations)
+                {
+                    if (ws == null || ws.WeaponInfo == null) continue;
+                    string name = !string.IsNullOrEmpty(ws.WeaponInfo.weaponName) ? ws.WeaponInfo.weaponName : ws.WeaponInfo.shortName;
+                    if (cur != null && ReferenceEquals(ws, cur)) selIndex = items.Count;
+                    items.Add("{" + Str("name", name ?? "-") + "," + Int("ammo", ws.Ammo) + "," + Str("unit", "") + "}");
+                }
+                return items.Count > 0 ? string.Join(",", items.ToArray()) : BuildSelectedWeapon(ac);
+            }
+            catch { selIndex = 0; return BuildSelectedWeapon(ac); }
         }
 
         private static string BuildSelectedWeapon(Aircraft ac)

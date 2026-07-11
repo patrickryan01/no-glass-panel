@@ -9,13 +9,14 @@ using UnityEngine;
 
 namespace GlassPanel
 {
-    [BepInPlugin(GUID, "NO Glass Panel", "1.3.0")]
+    [BepInPlugin(GUID, "NO Glass Panel", "1.4.0")]
     [BepInProcess("NuclearOption.exe")]
     public class Plugin : BaseUnityPlugin
     {
         public const string GUID = "ai.fireballz.noglasspanel";
 
         internal static ManualLogSource Log;
+        internal static bool HideWeaponHMD;
 
         private MiniServer _server;
         private TelemetryReader _reader;
@@ -43,6 +44,8 @@ namespace GlassPanel
             float hz = Config.Bind("Server", "UpdateHz", 30f,
                 "Telemetry frames per second pushed to connected panels.").Value;
             _interval = 1f / Mathf.Max(1f, hz);
+            HideWeaponHMD = Config.Bind("HMD", "HideWeaponAmmo", false,
+                "Hide the weapon/ammo indicator on the in-game HMD (it lives on the panel instead).").Value;
 
             _reader = new TelemetryReader();
             _server = new MiniServer(port, LoadPanelHtml());
@@ -80,10 +83,12 @@ namespace GlassPanel
             lock (_inboxLock) { if (_inbox.Count < 32) _inbox.Enqueue(msg); }
         }
 
-        // {"t":"chat","all":true,"text":"..."} — text is the last field.
+        // Panel -> game. Chat: {"t":"chat","all":true,"text":"..."}. Command: {"t":"cmd","a":"gear"}.
         private static void HandlePanelMessage(string json)
         {
-            if (json == null || json.IndexOf("\"chat\"", System.StringComparison.Ordinal) < 0) return;
+            if (json == null) return;
+            if (json.IndexOf("\"cmd\"", System.StringComparison.Ordinal) >= 0) { HandleCommand(json); return; }
+            if (json.IndexOf("\"chat\"", System.StringComparison.Ordinal) < 0) return;
             bool all = json.IndexOf("\"all\":true", System.StringComparison.Ordinal) >= 0;
             int i = json.IndexOf("\"text\":\"", System.StringComparison.Ordinal);
             if (i < 0) return;
@@ -92,6 +97,34 @@ namespace GlassPanel
             if (j <= i) return;
             string text = json.Substring(i, j - i).Replace("\\\"", "\"").Replace("\\\\", "\\");
             ChatBridge.Send(text, all);
+        }
+
+        // Touchscreen control from the panel — all verified aircraft methods.
+        private static void HandleCommand(string json)
+        {
+            string a = Extract(json, "\"a\":\"");
+            if (a == null) return;
+            if (!GameManager.GetLocalAircraft(out Aircraft ac) || ac == null) return;
+            try
+            {
+                switch (a)
+                {
+                    case "gear": ac.SetGear(!ac.gearDeployed); break;
+                    case "wpn+": if (ac.weaponManager != null) ac.weaponManager.NextWeaponStation(); break;
+                    case "wpn-": if (ac.weaponManager != null) ac.weaponManager.PreviousWeaponStation(); break;
+                    case "cm": if (ac.countermeasureManager != null) ac.countermeasureManager.PopFlares(); break;
+                }
+            }
+            catch { }
+        }
+
+        private static string Extract(string json, string marker)
+        {
+            int i = json.IndexOf(marker, System.StringComparison.Ordinal);
+            if (i < 0) return null;
+            i += marker.Length;
+            int j = json.IndexOf('"', i);
+            return j > i ? json.Substring(i, j - i) : null;
         }
 
         private static string LoadPanelHtml()
