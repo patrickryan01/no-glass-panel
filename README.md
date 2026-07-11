@@ -2,7 +2,7 @@
 
 **The HUD clutters my helmet. I took that personally and built a second screen.**
 
-![status](https://img.shields.io/badge/status-Phase%202%20in%20progress-ffb531?style=flat-square)
+![status](https://img.shields.io/badge/status-v1.0.0%20·%20live-4ee08c?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-39d6ff?style=flat-square)
 ![stack](https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20C%23%2FBepInEx-79f0cf?style=flat-square)
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)
