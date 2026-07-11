@@ -44,9 +44,9 @@ The **laptop needs nothing installed** — it's just a browser pointed at the ga
 web/index.html  →  open it in any browser
 ```
 
-That's the whole install. It boots up flying a **simulated** Nuclear Option sortie — attitude, airspeed and altitude tapes, heading, AoA, G, fuel and endurance, a stores panel that cycles weapons, countermeasures depleting, a heading-up tactical radar, and live HOTAS input bars. It runs on nothing but Canvas and spite.
+That's the whole install. It boots up flying a **simulated** Nuclear Option sortie so you can see the whole thing move — a frameless F‑35-style HMD horizon (airspeed in **knots + km/h**, altitude in **feet + meters**, Mach, G, AoA), framed **Map** and **Radar** MFDs, an **RWR**, a **meatball / AoA** approach indexer, the full **stores** loadout, a **damage** silhouette, and a **comms** strip you can type into. It runs on nothing but Canvas and spite. Reads fine on a phone or tablet too.
 
-The `SIM DATA` pill up top flips to `LIVE · MOD` the moment the mod (Phase 2) connects and starts feeding it real numbers.
+The `SIM` pill up top flips to `LIVE` the moment the mod connects and starts feeding it real numbers.
 
 ---
 
@@ -73,15 +73,23 @@ The panel consumes one JSON object, `applyTelemetry(obj)`. Send any subset ~30 t
 
 ---
 
-## 🗺️ Where this is going
+## 🗺️ Where it's at
 
-Phased plan and definitions-of-done in **[ROADMAP.md](ROADMAP.md)**. Short version:
+The build history and definitions-of-done live in **[ROADMAP.md](ROADMAP.md)**. Where it stands now — **everything below is fed by verified game reads, no guessing:**
 
-- **Phase 1 — The Panel** ✅ — self-contained HMD dashboard, simulated feed, contract locked.
-- **Phase 2 — Real Symbols** 🔧 — toolchain + decompile the game and pull the *actual* telemetry field names. No guessing. Verified against the running assembly and NOBlackBox.
-- **Phase 3 — The Mod** — BepInEx plugin: read verified telemetry, host the WebSocket, broadcast the contract.
-- **Phase 4 — Live + Declutter** — panel goes live over LAN; mod hides the weapon/ammo block on the HMD.
-- **Phase 5 — Polish + Ship** — OBS browser-source, packaging, release.
+**Live:**
+- Full multi-MFD panel — Map + Radar, frameless HMD horizon, RWR, meatball, stores, data band. Mobile/tablet responsive.
+- Real flight telemetry — airspeed (kt + km/h), altitude (ft + m), Mach, G, AoA, V/S, heading, radar alt, fuel, engine thrust, full loadout, live HOTAS inputs.
+- **RWR** (incoming missiles) and a **damage** silhouette that only shows when you're hit.
+- **Bi-directional comms** — type into game chat from the panel; game chat comes back to it.
+- **Touchscreen control** — cycle weapons, drop gear, pop flares from a tablet.
+- **HMD declutter** — optionally hide the weapon/ammo block on the in-game visor (the original point).
+- **OBS overlay** (`?overlay`) and **per-device views** (`?view=hud|map|radar|rwr`).
+
+**On the board:**
+- **Datalink** — a Link-16-style shared track picture (it's in the game; needs one more hook).
+- Fuller RWR (radar-track emitters), mission objectives, nav/waypoint steering.
+- Thunderstore packaging.
 
 ---
 
