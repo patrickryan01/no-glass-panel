@@ -2,7 +2,7 @@
 
 **The HUD clutters my helmet. I took that personally and built a second screen.**
 
-![status](https://img.shields.io/badge/status-v1.4.0%20·%20beta-ffb020?style=flat-square)
+![status](https://img.shields.io/badge/status-v1.5.0%20·%20beta-ffb020?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-39d6ff?style=flat-square)
 ![stack](https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20C%23%2FBepInEx-79f0cf?style=flat-square)
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)
@@ -86,9 +86,11 @@ The build history and definitions-of-done live in **[ROADMAP.md](ROADMAP.md)**. 
 - **HMD declutter** — optionally hide the weapon/ammo block on the in-game visor (the original point).
 - **OBS overlay** (`?overlay`) and **per-device views** (`?view=hud|map|radar|rwr`).
 
+- **Datalink** — a Link-16-style shared track picture off the faction HQ (dashed tracks, distinct from your own sensor).
+- **Fuller RWR** — radars *painting* you, not just missile launches.
+
 **On the board:**
-- **Datalink** — a Link-16-style shared track picture (it's in the game; needs one more hook).
-- Fuller RWR (radar-track emitters), mission objectives, nav/waypoint steering.
+- Mission objectives, nav/waypoint steering (both need a symbol the game won't cleanly expose yet — no guessing).
 - Thunderstore packaging.
 
 ---

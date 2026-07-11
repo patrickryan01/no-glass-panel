@@ -79,6 +79,7 @@ namespace GlassPanel
             p.Add("\"rwr\":[" + BuildRWR(ac) + "]");
             p.Add(BuildDamage(ac));
             p.Add("\"chat\":[" + ChatBridge.BuildJson() + "]");
+            p.Add("\"datalink\":[" + BuildDatalink(ac) + "]");
 
             return "{" + string.Join(",", p.ToArray()) + "}";
         }
@@ -178,20 +179,57 @@ namespace GlassPanel
             catch { return ""; }
         }
 
-        // Incoming-missile warnings from the game's MissileWarning system -> RWR launch threats.
+        // RWR: incoming missiles (launch, band M) + radars painting us (track, band R).
         private static string BuildRWR(Aircraft ac)
         {
             try
             {
-                MissileWarning mw = ac.GetMissileWarningSystem();
-                if (mw == null || mw.knownMissiles == null) return "";
                 var items = new List<string>();
-                foreach (Missile m in mw.knownMissiles)
+                MissileWarning mw = ac.GetMissileWarningSystem();
+                if (mw != null && mw.knownMissiles != null)
+                    foreach (Missile m in mw.knownMissiles)
+                    {
+                        if (m == null) continue;
+                        Vector3 d = m.transform.position - ac.transform.position;
+                        float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
+                        items.Add("{" + Num("brg", brg) + "," + Str("band", "M") + "," + Int("lock", 2) + "}");
+                    }
+                foreach (Radar r in RadarWarnTracker.Active())
                 {
-                    if (m == null) continue;
-                    Vector3 d = m.transform.position - ac.transform.position;
+                    if (r == null) continue;
+                    Vector3 d = r.transform.position - ac.transform.position;
                     float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
-                    items.Add("{" + Num("brg", brg) + "," + Str("band", "M") + "," + Int("lock", 2) + "}");
+                    items.Add("{" + Num("brg", brg) + "," + Str("band", "R") + "," + Int("lock", 1) + "}");
+                }
+                return string.Join(",", items.ToArray());
+            }
+            catch { return ""; }
+        }
+
+        // Datalink: the faction HQ's shared track picture (Link-16-style).
+        private static string BuildDatalink(Aircraft ac)
+        {
+            try
+            {
+                var hq = ac.NetworkHQ;
+                if (hq == null || hq.trackingDatabase == null) return "";
+                Faction ownF = hq.faction;
+                var items = new List<string>();
+                int n = 0;
+                foreach (var kv in hq.trackingDatabase)
+                {
+                    if (n >= 40) break;
+                    TrackingInfo ti = kv.Value;
+                    if (ti == null) continue;
+                    Unit u;
+                    if (!ti.TryGetUnit(out u) || u == null || ReferenceEquals(u, ac)) continue;
+                    Vector3 d = u.transform.position - ac.transform.position;
+                    float rng = d.magnitude;
+                    float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
+                    Faction uf = u.NetworkHQ != null ? u.NetworkHQ.faction : null;
+                    string type = (ownF != null && uf != null && ownF == uf) ? "F" : "H";
+                    items.Add("{" + Num("brg", brg) + "," + Num("rng", rng) + "," + Str("type", type) + "}");
+                    n++;
                 }
                 return string.Join(",", items.ToArray());
             }

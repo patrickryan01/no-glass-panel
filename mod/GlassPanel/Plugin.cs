@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace GlassPanel
 {
-    [BepInPlugin(GUID, "NO Glass Panel", "1.4.0")]
+    [BepInPlugin(GUID, "NO Glass Panel", "1.5.0")]
     [BepInProcess("NuclearOption.exe")]
     public class Plugin : BaseUnityPlugin
     {
@@ -24,6 +24,8 @@ namespace GlassPanel
         private float _interval = 1f / 30f;
         private readonly Queue<string> _inbox = new Queue<string>();
         private readonly object _inboxLock = new object();
+        private Aircraft _subAircraft;
+        private System.Action<Aircraft.OnRadarWarning> _radarHandler;
 
         private void Awake()
         {
@@ -66,6 +68,7 @@ namespace GlassPanel
 
             // Drain panel->game messages on the main thread (chat send must run here).
             lock (_inboxLock) { while (_inbox.Count > 0) HandlePanelMessage(_inbox.Dequeue()); }
+            EnsureRadarSub();
 
             _accum += Time.unscaledDeltaTime;
             if (_accum < _interval) return;
@@ -81,6 +84,24 @@ namespace GlassPanel
         private void OnPanelMessage(string msg)
         {
             lock (_inboxLock) { if (_inbox.Count < 32) _inbox.Enqueue(msg); }
+        }
+
+        // Keep subscribed to the local aircraft's radar-warning event (re-subscribes on respawn).
+        private void EnsureRadarSub()
+        {
+            try
+            {
+                GameManager.GetLocalAircraft(out Aircraft ac);
+                if (ReferenceEquals(ac, _subAircraft)) return;
+                if (_subAircraft != null && _radarHandler != null) _subAircraft.onRadarWarning -= _radarHandler;
+                _subAircraft = ac;
+                if (ac != null)
+                {
+                    if (_radarHandler == null) _radarHandler = w => RadarWarnTracker.Mark(w.radar);
+                    ac.onRadarWarning += _radarHandler;
+                }
+            }
+            catch { }
         }
 
         // Panel -> game. Chat: {"t":"chat","all":true,"text":"..."}. Command: {"t":"cmd","a":"gear"}.

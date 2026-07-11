@@ -169,7 +169,7 @@
 const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:0,roll:0,aoa:5,g:1,throttle:.7,engine:120,
   gear:false,fuelKg:4200,fuelMax:5000,fuelSec:1900,weaponIndex:0,
   weapons:[{name:'GAU CANNON',ammo:480,unit:'RDS'},{name:'AIM‑54C',ammo:4,unit:'MSL'},{name:'AGM STRIKE',ammo:6,unit:'MSL'},{name:'MK82 ×8',ammo:8,unit:'BMB'},{name:'☢ NUCLEAR',ammo:1,unit:'SPL'}],
-  flares:60,chaff:60,flaresMax:60,chaffMax:60,contacts:[],rwr:[],chat:[],damage:null,
+  flares:60,chaff:60,flaresMax:60,chaffMax:60,contacts:[],rwr:[],chat:[],damage:null,datalink:[],
   inputs:{pitch:0,roll:0,yaw:0,throttle:.7},met:0,caution:false,warning:false,
   peakG:1,_hasRWR:false,_hasChat:false,_lockRng:null,_lockT:0,vc:0};
 
@@ -183,7 +183,8 @@ function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>set
 let last=performance.now();
 function seed(){S.contacts=[{brg:104,rng:14200,alt:2000,spd:0,type:'H',name:'SAM',locked:true},{brg:60,rng:9800,alt:8500,spd:280,type:'H',name:'FS‑12'},{brg:250,rng:16000,alt:9000,spd:240,type:'F',name:'T/A‑30'},{brg:330,rng:7200,alt:400,spd:60,type:'U',name:'?'}];
   S.rwr=[{brg:104,band:'A',lock:1},{brg:60,band:'A',lock:0},{brg:205,band:'S',lock:0}];
-  S.chat=[{who:'BLUE HQ',msg:'Strike package cleared hot.'},{who:'VIPER 1‑2',msg:'Tied on, taking the trailer.'}];S.damage={hull:1,sections:{}};}
+  S.chat=[{who:'BLUE HQ',msg:'Strike package cleared hot.'},{who:'VIPER 1‑2',msg:'Tied on, taking the trailer.'}];S.damage={hull:1,sections:{}};
+  S.datalink=[{brg:80,rng:22000,type:'H'},{brg:140,rng:30000,type:'H'},{brg:280,rng:18000,type:'F'},{brg:20,rng:26000,type:'F'}];}
 seed();
 function sim(dt){const t=S.met+=dt;
   S.roll+=((26*Math.sin(t*.13)+8*Math.sin(t*.41))-S.roll)*Math.min(1,dt*1.6);
@@ -274,9 +275,13 @@ function blip(x,px,py,c){const col=c.type==='H'?RED:c.type==='F'?NAV:AMBER;x.str
   if(c.type==='H')x.strokeRect(px-4,py-4,8,8);else if(c.type==='F'){x.beginPath();x.arc(px,py,4,0,7);x.stroke();}
   else{x.beginPath();x.moveTo(px,py-5);x.lineTo(px+5,py);x.lineTo(px,py+5);x.lineTo(px-5,py);x.closePath();x.stroke();}
   if(c.locked){x.strokeStyle=RED;x.lineWidth=1;x.strokeRect(px-7,py-7,14,14);}}
+// datalink track (shared HQ picture) — dashed + dimmer, distinct from own-sensor contacts
+function dlBlip(x,px,py,type){const col=type==='F'?'#2a7a8a':type==='H'?'#8a3a38':'#6a5a2a';x.strokeStyle=col;x.lineWidth=1;x.setLineDash([2,2]);
+  if(type==='F'){x.beginPath();x.arc(px,py,3.5,0,7);x.stroke();}else{x.strokeRect(px-3,py-3,6,6);}x.setLineDash([]);}
 function map(){const{x,w,h}=fit('mapCv');x.clearRect(0,0,w,h);const ox=w/2,oy=h/2,R=Math.min(w,h)*.42,rng=40000,sc=R/rng;
   x.strokeStyle='#0f2831';x.lineWidth=1;for(let g=-2;g<=2;g++){x.globalAlpha=.5;x.beginPath();x.moveTo(ox+g*R/2,oy-R);x.lineTo(ox+g*R/2,oy+R);x.stroke();x.beginPath();x.moveTo(ox-R,oy+g*R/2);x.lineTo(ox+R,oy+g*R/2);x.stroke();}
   x.globalAlpha=1;x.strokeStyle='#123038';[R/2,R].forEach(r=>{x.beginPath();x.arc(ox,oy,r,0,7);x.stroke();});
+  (S.datalink||[]).forEach(c=>{const a=c.brg*D2R,r=Math.min(R,c.rng*sc);dlBlip(x,ox+Math.sin(a)*r,oy-Math.cos(a)*r,c.type);});
   (S.contacts||[]).forEach(c=>{const a=c.brg*D2R,r=Math.min(R,c.rng*sc);blip(x,ox+Math.sin(a)*r,oy-Math.cos(a)*r,c);});
   x.save();x.translate(ox,oy);x.rotate(S.hdg*D2R);x.fillStyle=AMBER;x.strokeStyle=AMBER;x.lineWidth=1.6;
   x.beginPath();x.moveTo(0,-9);x.lineTo(-6,7);x.lineTo(0,3);x.lineTo(6,7);x.closePath();x.fill();x.beginPath();x.moveTo(0,-9);x.lineTo(0,-20);x.stroke();x.restore();}
