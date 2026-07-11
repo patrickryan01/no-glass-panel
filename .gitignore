@@ -13,6 +13,10 @@ mod/lib/
 decompiled/
 *.il
 
+# ── Thunderstore build artifact (rebuilt from source by thunderstore/build.ps1) ──
+thunderstore/*.zip
+thunderstore/.stage/
+
 # ── IDE / editor ──
 .idea/
 *.swp

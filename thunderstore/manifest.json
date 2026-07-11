@@ -1,0 +1,9 @@
+{
+  "name": "GlassPanel",
+  "version_number": "1.8.0",
+  "website_url": "https://github.com/patrickryan01/no-glass-panel",
+  "description": "F-35-style HMD glass panel on a second screen. Live telemetry over your LAN.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2305"
+  ]
+}
