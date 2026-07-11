@@ -237,17 +237,30 @@ namespace GlassPanel
             catch { return ""; }
         }
 
-        // Damage integrity from the part-damage tracker (fraction of parts blown off).
+        // Damage: overall integrity + which sections are gone + which airframe you're in.
         private static string BuildDamage(Aircraft ac)
         {
-            float hull = 1f;
+            float hull = 1f, nose = 1f, lwing = 1f, rwing = 1f, tail = 1f, engine = 1f;
+            string name = "", code = "";
             try
             {
-                if (ac.partDamageTracker != null)
-                    hull = 1f - ac.partDamageTracker.GetDetachedRatio();
+                if (ac.partDamageTracker != null) hull = 1f - ac.partDamageTracker.GetDetachedRatio();
+                if (ac.definition != null) { name = ac.definition.unitName ?? ""; code = ac.definition.code ?? ""; }
+                foreach (UnitPart part in ac.GetAllParts())
+                {
+                    if (part == null || !part.IsDetached()) continue;
+                    Vector3 lp = part.transform.localPosition;
+                    if (lp.x < -0.8f) lwing = 0f;
+                    else if (lp.x > 0.8f) rwing = 0f;
+                    else if (lp.z > 1.0f) nose = 0f;
+                    else if (lp.z < -1.0f) tail = 0f;
+                    else engine = 0.3f;
+                }
             }
             catch { }
-            return "\"damage\":{" + Num("hull", hull) + "}";
+            return "\"damage\":{" + Num("hull", hull) + "," + Str("name", name) + "," + Str("code", code)
+                + ",\"sections\":{" + Num("nose", nose) + "," + Num("lwing", lwing) + "," + Num("rwing", rwing)
+                + "," + Num("tail", tail) + "," + Num("engine", engine) + "}}";
         }
 
         // Nearest friendly airbase — bearing/range for RTB steering.

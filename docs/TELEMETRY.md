@@ -91,6 +91,8 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 
 **v1.6.0:** `nav` — `{ name:string, brg:deg, rng:m }` or `null`, the nearest friendly airbase for RTB steering (`FactionHQ.TryGetNearestAirbase` → `Airbase.center` Transform). Drawn as a home-plate marker + steer line on the map.
 
+**v1.7.0:** `damage` now carries `name`/`code` (from `aircraft.definition`) and real per-section state — the mod walks `aircraft.GetAllParts()`, finds detached parts, and buckets them by local position into `nose/lwing/rwing/tail/engine`. The panel draws an airframe-labeled silhouette (rotorcraft variant for helos), always on, lighting up the section that's actually gone.
+
 The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
 
 ## Units note
