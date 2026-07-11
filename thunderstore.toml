@@ -23,6 +23,12 @@ outdir = "./thunderstore/build"
 source = "./mod/GlassPanel/bin/Release/net472/GlassPanel.dll"
 target = "plugins/GlassPanel.dll"
 
+# CHANGELOG.md at the package root becomes the "Changelog" tab on the listing.
+# tcli has no dedicated changelog key — it ships as a copied file.
+[[build.copy]]
+source = "./CHANGELOG.md"
+target = "CHANGELOG.md"
+
 [publish]
 repository = "https://thunderstore.io"
 communities = ["nuclear-option"]
