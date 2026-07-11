@@ -50,6 +50,14 @@
   #map{grid-area:map}#radar{grid-area:radar}#rwr{grid-area:rwr}
   .bz{position:absolute;left:0;right:0;bottom:6px;z-index:2;display:flex;gap:9px;justify-content:center}
   .bz b{width:16px;height:4px;border-radius:2px;background:#17323a}
+  /* mission objectives, overlaid top-left of the map */
+  .mapObj{position:absolute;left:9px;top:26px;max-width:64%;z-index:3;display:flex;flex-direction:column;gap:3px;pointer-events:none}
+  .mapObj .ob{display:flex;gap:6px;align-items:baseline;font-size:11px}
+  .mapObj .ob .st{font-family:var(--sans);font-size:8px;line-height:1;padding:2px 4px;border-radius:3px;border:1px solid var(--hair2);color:var(--dim);flex:0 0 auto}
+  .mapObj .ob .st.done{color:var(--green);border-color:#1c4a30}
+  .mapObj .ob .st.fail{color:var(--red);border-color:#5a1a18}
+  .mapObj .ob .tx{color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mapObj .ob.done .tx{color:var(--dim);text-decoration:line-through}
   /* radar lower data block (fills the dead space) */
   .rdata{position:absolute;left:8px;right:8px;bottom:8px;z-index:3;display:grid;grid-template-columns:1fr 1fr;gap:5px;pointer-events:none}
   .rdata .rc{border:1px solid var(--hair2);border-radius:6px;background:rgba(7,15,18,.6);padding:5px 8px;min-width:0}
@@ -133,7 +141,7 @@
     <div class="pill sim" id="conn"><span class="dot"></span><span id="connTxt">SIM</span></div>
   </div>
 
-  <div class="mfd" id="map"><div class="cap">Map</div><div class="cap r" id="mapS">40 KM</div><canvas id="mapCv"></canvas><div class="bz"><b></b><b></b><b></b><b></b><b></b></div></div>
+  <div class="mfd" id="map"><div class="cap">Map</div><div class="cap r" id="mapS">40 KM</div><canvas id="mapCv"></canvas><div class="mapObj" id="mapObj"></div><div class="bz"><b></b><b></b><b></b><b></b><b></b></div></div>
   <div class="hud"><canvas id="hud"></canvas><canvas id="damage"></canvas></div>
   <div class="mfd" id="radar"><div class="cap">Radar · RWS</div><div class="cap r" id="radarS">30 KM</div><canvas id="radarCv"></canvas><div class="bz"><b></b><b></b><b></b><b></b><b></b></div>
     <div class="rdata">
@@ -200,7 +208,8 @@ function seed(){S.contacts=[{brg:104,rng:14200,alt:2000,spd:0,type:'H',name:'SAM
   S.rwr=[{brg:104,band:'A',lock:1},{brg:60,band:'A',lock:0},{brg:205,band:'S',lock:0}];
   S.chat=[{who:'BLUE HQ',msg:'Strike package cleared hot.'},{who:'VIPER 1‑2',msg:'Tied on, taking the trailer.'}];S.damage={hull:1,name:'FS-12',code:'FS-12',sections:{nose:1,lwing:1,rwing:1,tail:1,engine:1}};
   S.datalink=[{brg:80,rng:22000,type:'H'},{brg:140,rng:30000,type:'H'},{brg:280,rng:18000,type:'F'},{brg:20,rng:26000,type:'F'}];
-  S.nav={name:'HOMEPLATE',brg:248,rng:38000};}
+  S.nav={name:'HOMEPLATE',brg:248,rng:38000};
+  S.objectives=[{text:'Destroy SAM site "Anvil"',status:'InProgress',pct:.35},{text:'Escort convoy to FARP',status:'Complete',pct:1},{text:'Reach waypoint ALPHA',status:'InProgress',pct:0},{text:'Keep the strike lead alive',status:'Failed',pct:0}];}
 seed();
 function sim(dt){const t=S.met+=dt;
   S.roll+=((26*Math.sin(t*.13)+8*Math.sin(t*.41))-S.roll)*Math.min(1,dt*1.6);
@@ -371,6 +380,9 @@ function dom(){S.peakG=Math.max(S.peakG,S.g||0);
   document.getElementById('flB').style.width=(100*S.flares/(S.flaresMax||1))+'%';document.getElementById('chB').style.width=(100*S.chaff/(S.chaffMax||1))+'%';
   document.getElementById('lc').classList.toggle('on',S.caution);document.getElementById('lw').classList.toggle('on',S.warning);
   document.getElementById('lrwr').style.display=(S.rwr||[]).some(r=>r.lock>=2)?'':'none';
+  const mo=document.getElementById('mapObj');
+  if(S.objectives&&S.objectives.length){mo.innerHTML=S.objectives.slice(0,5).map(o=>{const s=(o.status||'').toLowerCase();const done=s.indexOf('complete')>=0;const fail=s.indexOf('fail')>=0;const cls=done?'done':fail?'fail':'';const gl=done?'✓':fail?'✗':'○';return `<div class="ob ${cls}"><span class="st ${cls}">${gl}</span><span class="tx">${esc(o.text||'')}</span></div>`;}).join('');}
+  else mo.innerHTML='';
   const log=document.getElementById('commsLog');
   if(S._hasChat&&S.chat&&S.chat.length){log.innerHTML=S.chat.slice(-30).map(m=>`<div class="line"><b>${esc(m.who||'')}</b> ${esc(m.msg||m)}</div>`).join('');log.scrollTop=log.scrollHeight;}
   else log.innerHTML='<span class="empty">— standby —</span>';}

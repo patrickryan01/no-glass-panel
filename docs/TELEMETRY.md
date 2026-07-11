@@ -93,6 +93,8 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 
 **v1.7.0:** `damage` now carries `name`/`code` (from `aircraft.definition`) and real per-section state — the mod walks `aircraft.GetAllParts()`, finds detached parts, and buckets them by local position into `nose/lwing/rwing/tail/engine`. The panel draws an airframe-labeled silhouette (rotorcraft variant for helos), always on, lighting up the section that's actually gone.
 
+**v1.8.0:** `objectives` — `[{ text:string, status:string, pct:0..1 }]`, the current mission's objective list. The mod reads `MissionManager.Objectives.AllObjectives` and pulls each objective's display text (`Objective.ToUIString`), state (`Objective.Status`), and completion (`Objective.CompletePercent`) — verified against the real `ObjectiveV2.Objective` type, not guessed. Drawn as a checklist overlaid on the top-left of the map: `○` in progress, `✓` complete, `✗` failed. Empty array = no mission loaded.
+
 The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
 
 ## Units note

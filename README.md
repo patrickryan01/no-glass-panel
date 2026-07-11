@@ -2,7 +2,7 @@
 
 **The HUD clutters my helmet. I took that personally and built a second screen.**
 
-![status](https://img.shields.io/badge/status-v1.7.0%20·%20beta-ffb020?style=flat-square)
+![status](https://img.shields.io/badge/status-v1.8.0%20·%20beta-ffb020?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-39d6ff?style=flat-square)
 ![stack](https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20C%23%2FBepInEx-79f0cf?style=flat-square)
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)
@@ -89,9 +89,9 @@ The build history and definitions-of-done live in **[ROADMAP.md](ROADMAP.md)**. 
 - **Datalink** — a Link-16-style shared track picture off the faction HQ (dashed tracks, distinct from your own sensor).
 - **Fuller RWR** — radars *painting* you, not just missile launches.
 - **Nav / RTB** — bearing + range to your nearest airbase, drawn as a steer line on the map.
+- **Mission objectives** — the current mission's objective list, live status, drawn over the map.
 
 **On the board:**
-- Mission objectives (blocked on a game type that won't decompile — no guessing).
 - Thunderstore packaging.
 
 ---

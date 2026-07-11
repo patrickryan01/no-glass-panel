@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace GlassPanel
 {
-    [BepInPlugin(GUID, "NO Glass Panel", "1.7.0")]
+    [BepInPlugin(GUID, "NO Glass Panel", "1.8.0")]
     [BepInProcess("NuclearOption.exe")]
     public class Plugin : BaseUnityPlugin
     {

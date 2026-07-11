@@ -81,6 +81,7 @@ namespace GlassPanel
             p.Add("\"chat\":[" + ChatBridge.BuildJson() + "]");
             p.Add("\"datalink\":[" + BuildDatalink(ac) + "]");
             p.Add(BuildNav(ac));
+            p.Add("\"objectives\":[" + BuildObjectives() + "]");
 
             return "{" + string.Join(",", p.ToArray()) + "}";
         }
@@ -284,6 +285,31 @@ namespace GlassPanel
             }
             catch { }
             return "\"nav\":null";
+        }
+
+        // Current mission objectives (text + status + completion).
+        private static string BuildObjectives()
+        {
+            try
+            {
+                var mo = MissionManager.Objectives;
+                if (mo == null || mo.AllObjectives == null) return "";
+                var items = new List<string>();
+                foreach (var obj in mo.AllObjectives)
+                {
+                    if (obj == null) continue;
+                    string text = null;
+                    try { text = obj.ToUIString(false); } catch { }
+                    if (string.IsNullOrEmpty(text)) { try { text = obj.ToString(); } catch { } }
+                    string status = "";
+                    try { status = obj.Status.ToString(); } catch { }
+                    float pct = 0f;
+                    try { pct = obj.CompletePercent; } catch { }
+                    items.Add("{" + Str("text", text ?? "") + "," + Str("status", status) + "," + Num("pct", pct) + "}");
+                }
+                return string.Join(",", items.ToArray());
+            }
+            catch { return ""; }
         }
 
         // ── tiny JSON helpers, invariant culture ──
