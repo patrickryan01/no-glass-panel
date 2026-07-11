@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in the panel or mod is wrong
+labels: ["bug"]
+body:
+  - type: input
+    id: aircraft
+    attributes:
+      label: Aircraft
+      placeholder: e.g. FS-12
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What the panel showed vs. what the game showed
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+  - type: textarea
+    id: log
+    attributes:
+      label: BepInEx log
+      description: Paste BepInEx/LogOutput.log if the mod didn't load
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: e.g. v1.1.0

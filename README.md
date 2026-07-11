@@ -2,7 +2,7 @@
 
 **The HUD clutters my helmet. I took that personally and built a second screen.**
 
-![status](https://img.shields.io/badge/status-v1.1.0%20·%20live-4ee08c?style=flat-square)
+![status](https://img.shields.io/badge/status-v1.1.0%20·%20beta-ffb020?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-39d6ff?style=flat-square)
 ![stack](https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20C%23%2FBepInEx-79f0cf?style=flat-square)
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)
@@ -89,6 +89,16 @@ Phased plan and definitions-of-done in **[ROADMAP.md](ROADMAP.md)**. Short versi
 
 - **Panel:** HTML + Canvas + vanilla JS. Zero dependencies. Zero build. Deploys like a fist through drywall.
 - **Mod:** C# on BepInEx (Mono). Reads the game, serves a WebSocket, minds its own business.
+
+## 🧪 Beta — kick the tires, file the bugs
+
+This is **beta**. It flies, it's live, and it absolutely still has sharp edges. If a readout looks wrong, a module renders weird, or you want a gauge that isn't there — I want to hear it. Support lives right here in the repo, not in some Discord-only cave.
+
+- 🐛 **Bugs** → open an [issue](https://github.com/patrickryan01/no-glass-panel/issues/new/choose). Tell me the aircraft, what the **panel showed vs. what the game showed**, and paste `BepInEx\LogOutput.log` if it didn't load.
+- 💬 **Ideas, questions, show off your battlestation** → [Discussions](https://github.com/patrickryan01/no-glass-panel/discussions).
+- 🔧 **Pull requests welcome** → see [CONTRIBUTING.md](CONTRIBUTING.md). Two-space indent. I will die on that hill. Alone. With my White Monster.
+
+---
 
 ## ⚖️ License
 

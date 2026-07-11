@@ -1,0 +1,15 @@
+name: Feature / gauge request
+description: A readout, module, or tweak you want
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want
+      description: The gauge, module, or behavior
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why / how you'd use it
