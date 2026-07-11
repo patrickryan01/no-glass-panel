@@ -67,6 +67,22 @@ The panel and the mod meet here and nowhere else. The mod's entire job is to fil
 }
 ```
 
+## v0.2 additions (multi-MFD panel)
+
+The Tomcat-style panel adds these. All optional — a module shows a **standby** state until its field arrives, so the mod can light them up incrementally.
+
+| Key | Type | Notes |
+|---|---|---|
+| `contacts[].alt` | number (m) | Contact altitude — shown on the radar block. |
+| `contacts[].spd` | number (kn) | Contact speed. |
+| `contacts[].name` | string | Contact type/callsign. |
+| `contacts[].locked` | boolean | Drives the locked-target data block. |
+| `rwr` | array | `[{ brg:deg, band:string, lock:0|1|2 }]` — radar warning receiver. `lock`: 0 search, 1 track, 2 launch. Empty array = no threats; **absent = RWR standby**. |
+| `damage` | object | `{ hull:0..1, sections:{ nose, lwing, rwing, tail, engine : 0..1 } }` (1 = healthy). The damage silhouette only appears when something is < 1. |
+| `chat` | array | `[{ who:string, msg:string }]` — recent in-game messages. Absent = comms standby. |
+
+The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
+
 ## Units note
 
 Speeds and altitudes here are aviation-standard (knots / feet) because that's how the panel is labeled. Nuclear Option works internally in metric (m/s, meters). Converting metric → these units is the **mod's** responsibility (Phase 3), so the panel stays a dumb, honest renderer. The exact source fields get pinned down and documented in `GAME_SYMBOLS.md` during Phase 2 — verified against the game, not guessed.

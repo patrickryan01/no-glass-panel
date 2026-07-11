@@ -67,12 +67,12 @@ if (-not $SkipFirewall) {
   try {
     if (-not (Get-NetFirewallRule -DisplayName 'NO Glass Panel 8787' -ErrorAction SilentlyContinue)) {
       New-NetFirewallRule -DisplayName 'NO Glass Panel 8787' -Direction Inbound -Action Allow `
-        -Protocol TCP -LocalPort $Port -Profile Private -ErrorAction Stop | Out-Null
-      Write-Host "Firewall opened (TCP $Port, Private profile)."
+        -Protocol TCP -LocalPort $Port -Profile Any -ErrorAction Stop | Out-Null
+      Write-Host "Firewall opened (TCP $Port, all profiles)."
     } else { Write-Host "Firewall rule already present." }
   } catch {
     Write-Warning "Couldn't open the firewall (run PowerShell as admin for this one line):"
-    Write-Host "  New-NetFirewallRule -DisplayName 'NO Glass Panel 8787' -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Private"
+    Write-Host "  New-NetFirewallRule -DisplayName 'NO Glass Panel 8787' -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any"
   }
 }
 

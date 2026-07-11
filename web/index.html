@@ -2,383 +2,418 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nuclear Option — Glass Panel</title>
 <style>
-  /* ── Single visual world: F-35 HMD glass. Dark cockpit only, by design. ── */
   :root{
     --bg:#04080a; --panel:#0a1216; --panel2:#0c161b; --edge:#16303a;
     --grid:#0f2831; --ink:#79f0cf; --ink-dim:#356b62; --label:#6f938d;
     --nav:#39d6ff; --amber:#ffb531; --red:#ff5347; --green:#4ee08c; --white:#e3f6f0;
     --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
     --sans:system-ui,"Segoe UI",Roboto,sans-serif;
+    --gap:8px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
+  html,body{margin:0;height:100%;background:var(--bg)}
   body{
-    background:
-      radial-gradient(120% 90% at 50% -10%,#0a1a20 0%,var(--bg) 60%),
-      var(--bg);
-    color:var(--ink); font-family:var(--mono);
-    font-variant-numeric:tabular-nums; overflow:hidden;
-    -webkit-font-smoothing:antialiased;
+    color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% -10%,#0a1a20 0%,var(--bg) 60%),var(--bg);
   }
-  .frame{height:100vh; display:grid; grid-template-rows:auto 1fr; gap:10px; padding:12px;}
-  /* ── status strip ── */
-  .status{
-    display:flex; align-items:center; gap:16px; padding:8px 14px;
-    border:1px solid var(--edge); border-radius:8px; background:linear-gradient(180deg,#0b171d,#081015);
+  .frame{height:100vh;height:100dvh;display:grid;gap:var(--gap);padding:var(--gap);
+    grid-template-columns:1.25fr 1fr 0.85fr;
+    grid-template-rows:auto 1.15fr 1fr auto;
+    grid-template-areas:
+      "status status status"
+      "map    radar  rwr"
+      "map    radar  weap"
+      "pfd    approach data";
   }
-  .status .brand{font-family:var(--sans);font-weight:700;letter-spacing:.14em;color:var(--white);font-size:14px}
-  .status .brand small{color:var(--ink-dim);font-weight:600;letter-spacing:.2em}
+  .status{grid-area:status}
+  #map{grid-area:map}   #radar{grid-area:radar}   #rwr{grid-area:rwr}
+  #weap{grid-area:weap} #pfd{grid-area:pfd}
+  #approach{grid-area:approach} #data{grid-area:data}
+
+  .panel{border:1px solid var(--edge);border-radius:9px;position:relative;overflow:hidden;min-height:0;min-width:0;
+    background:linear-gradient(180deg,#0b161b 0%,#081014 100%);}
+  .panel::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.15) 2px 3px);opacity:.45}
+  .cap{position:absolute;top:6px;left:10px;z-index:3;font-family:var(--sans);font-size:9px;
+    letter-spacing:.2em;color:var(--label);text-transform:uppercase;pointer-events:none}
+  .cap.r{left:auto;right:10px}
+  canvas{display:block;width:100%;height:100%}
+
+  /* status bar */
+  .status{display:flex;align-items:center;gap:14px;padding:7px 12px;border:1px solid var(--edge);
+    border-radius:9px;background:linear-gradient(180deg,#0b171d,#081015);overflow-x:auto}
+  .brand{font-family:var(--sans);font-weight:700;letter-spacing:.12em;color:var(--white);font-size:13px;white-space:nowrap}
+  .brand small{color:var(--ink-dim);letter-spacing:.18em}
+  .kv{display:flex;flex-direction:column;line-height:1.05;white-space:nowrap}
+  .kv .k{font-family:var(--sans);font-size:8px;letter-spacing:.16em;color:var(--label);text-transform:uppercase}
+  .kv .v{font-size:15px;color:var(--white)}
   .spacer{flex:1}
-  .pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;
-    font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;border:1px solid}
-  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .lamp{font-family:var(--sans);font-size:9px;font-weight:800;letter-spacing:.08em;padding:5px 8px;border-radius:5px;
+    border:1px solid #26333a;color:#31424a;background:#0a1216;white-space:nowrap}
+  .lamp.on.caution{color:#0a0a0a;background:var(--amber);border-color:var(--amber);box-shadow:0 0 12px #ffb53199}
+  .lamp.on.warning{color:#160404;background:var(--red);border-color:var(--red);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{background:#3a0f0c;color:var(--red)}}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.1em;border:1px solid;white-space:nowrap}
+  .pill .dot{width:7px;height:7px;border-radius:50%}
   .pill.sim{color:var(--amber);border-color:#5a4213;background:#20180a}
-  .pill.sim .dot{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .pill.sim .dot{background:var(--amber);box-shadow:0 0 7px var(--amber)}
   .pill.live{color:var(--green);border-color:#1c4a30;background:#0c2016}
-  .pill.live .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
-  .kv{display:flex;flex-direction:column;line-height:1.05}
-  .kv .k{font-family:var(--sans);font-size:9px;letter-spacing:.18em;color:var(--label);text-transform:uppercase}
-  .kv .v{font-size:17px;color:var(--white)}
-  .warns{display:flex;gap:8px}
-  .lamp{font-family:var(--sans);font-size:10px;font-weight:800;letter-spacing:.1em;padding:5px 9px;border-radius:5px;
-    border:1px solid #26333a;color:#31424a;background:#0a1216;transition:.15s}
-  .lamp.caution.on{color:#0a0a0a;background:var(--amber);border-color:var(--amber);box-shadow:0 0 14px #ffb53199}
-  .lamp.warning.on{color:#160404;background:var(--red);border-color:var(--red);box-shadow:0 0 14px #ff534799}
+  .pill.live .dot{background:var(--green);box-shadow:0 0 7px var(--green)}
 
-  /* ── main grid ── */
-  .main{display:grid; grid-template-columns:1.75fr 360px; grid-template-rows:1fr auto; gap:10px; min-height:0;}
-  .panel{border:1px solid var(--edge);border-radius:10px;background:
-     linear-gradient(180deg,#0b161b 0%,#081014 100%); position:relative; overflow:hidden;}
-  .panel::after{ /* faint scanlines for glass feel */
-    content:"";position:absolute;inset:0;pointer-events:none;
-    background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.16) 2px 3px);opacity:.5;}
-  .cap{position:absolute;top:8px;left:12px;font-family:var(--sans);font-size:10px;letter-spacing:.22em;
-    color:var(--label);text-transform:uppercase;z-index:2}
-  #pfd{grid-row:1 / 2}
-  #pfdCanvas,#radarCanvas{display:block;width:100%;height:100%}
-  .rail{grid-row:1 / 3; display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
-  .bottom{grid-row:2 / 3; display:grid;grid-template-columns:1fr 300px;gap:10px}
-
-  /* ── stores (hero) ── */
-  .stores{flex:0 0 auto;padding:12px 12px 10px}
-  .stores h3,.rail .card h3{margin:0 0 9px;font-family:var(--sans);font-size:10px;letter-spacing:.22em;
-    color:var(--label);text-transform:uppercase;font-weight:700}
-  .wsel{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-  .wsel .name{font-size:23px;color:var(--amber);letter-spacing:.02em;text-shadow:0 0 12px #ffb53155}
-  .wsel .ammo{font-size:23px;color:var(--white)}
-  .wsel .ammo small{font-size:12px;color:var(--label)}
-  .wlist{display:flex;flex-direction:column;gap:3px}
-  .wrow{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;border-radius:5px;
-    font-size:13px;color:var(--ink-dim);border:1px solid transparent}
-  .wrow .rc{color:var(--label)}
+  /* weapons */
+  .weap{padding:26px 11px 10px;display:flex;flex-direction:column;gap:8px}
+  .wsel{display:flex;justify-content:space-between;align-items:baseline}
+  .wsel .name{font-size:18px;color:var(--amber);text-shadow:0 0 10px #ffb53144}
+  .wsel .ammo{font-size:18px;color:var(--white)} .wsel .ammo small{font-size:10px;color:var(--label)}
+  .wlist{display:flex;flex-direction:column;gap:2px;overflow:auto;flex:1}
+  .wrow{display:flex;justify-content:space-between;padding:3px 8px;border-radius:4px;font-size:12px;
+    color:var(--ink-dim);border:1px solid transparent}
   .wrow.sel{color:var(--white);background:#1a1305;border-color:#5a4213}
-  .wrow.sel .rc{color:var(--amber)}
-  .wrow.empty{color:#3a2020}
-  .card{padding:12px}
-  .card.grow{flex:1 1 0;min-height:0}
-  /* countermeasures */
-  .cm{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .cmb{display:flex;flex-direction:column;gap:5px}
-  .cmb .top{display:flex;justify-content:space-between;align-items:baseline}
-  .cmb .top .lbl{font-family:var(--sans);font-size:10px;letter-spacing:.14em;color:var(--label)}
-  .cmb .top .n{font-size:18px;color:var(--white)}
-  .bar{height:7px;border-radius:4px;background:#0d2027;overflow:hidden;border:1px solid #123038}
-  .bar>span{display:block;height:100%;border-radius:3px;transition:width .3s}
-  .bar.flare>span{background:linear-gradient(90deg,#ff7a2e,#ffb531)}
-  .bar.chaff>span{background:linear-gradient(90deg,#2e9dff,#7ad6ff)}
-  /* fuel + engine tiles */
-  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .tile{border:1px solid var(--edge);border-radius:8px;background:#091217;padding:9px 11px}
-  .tile .k{font-family:var(--sans);font-size:9px;letter-spacing:.16em;color:var(--label);text-transform:uppercase}
-  .tile .v{font-size:22px;color:var(--white);margin-top:2px}
-  .tile .v.warn{color:var(--amber)} .tile .v.crit{color:var(--red)}
-  .tile .u{font-size:11px;color:var(--label)}
-  .thbar{margin-top:7px;height:6px;background:#0d2027;border-radius:3px;overflow:hidden;border:1px solid #123038}
-  .thbar>span{display:block;height:100%;background:linear-gradient(90deg,#2c8f6b,#4ee08c)}
-  /* radar */
-  #radar{min-height:0}
-  /* inputs */
-  .inputs{padding:12px}
-  .inrow{display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:10px;margin:7px 0}
-  .inrow .lbl{font-family:var(--sans);font-size:10px;letter-spacing:.12em;color:var(--label);text-transform:uppercase}
-  .inrow .val{font-size:13px;color:var(--ink);text-align:right}
-  .track{position:relative;height:10px;background:#0d2027;border:1px solid #123038;border-radius:5px}
-  .track .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#1c4551}
-  .track .fillC{position:absolute;top:0;bottom:0;background:var(--nav);border-radius:3px;opacity:.85}
-  .track .fillL{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,#2c8f6b,#4ee08c);border-radius:3px}
-  @media (prefers-reduced-motion:reduce){ .panel::after{display:none} *{transition:none!important} }
-  @media (max-width:900px){ .main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
-    .rail{grid-row:auto} .bottom{grid-row:auto;grid-template-columns:1fr} #pfd{min-height:320px} }
+  .wrow.sel .rc{color:var(--amber)} .wrow .rc{color:var(--label)}
+  .cmwrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+  .cmb .top{display:flex;justify-content:space-between;font-size:10px;color:var(--label);font-family:var(--sans)}
+  .cmb .top b{color:var(--white);font-family:var(--mono)}
+  .bar{height:6px;border-radius:3px;background:#0d2027;border:1px solid #123038;overflow:hidden;margin-top:3px}
+  .bar>span{display:block;height:100%}
+  .bar.fl>span{background:linear-gradient(90deg,#ff7a2e,#ffb531)}
+  .bar.ch>span{background:linear-gradient(90deg,#2e9dff,#7ad6ff)}
+
+  /* data strip */
+  .data{grid-area:data;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:8px}
+  .tile{border:1px solid var(--edge);border-radius:7px;background:#091217;padding:6px 9px;min-width:0}
+  .tile .k{font-family:var(--sans);font-size:8px;letter-spacing:.14em;color:var(--label);text-transform:uppercase}
+  .tile .v{font-size:17px;color:var(--white);margin-top:1px;white-space:nowrap}
+  .tile .v.warn{color:var(--amber)} .tile .v.crit{color:var(--red)} .tile .v.ok{color:var(--green)}
+  .tile .u{font-size:10px;color:var(--label)}
+  .ins{display:flex;gap:4px;margin-top:5px;height:5px}
+  .ins .t{flex:1;background:#0d2027;border:1px solid #123038;border-radius:3px;position:relative;overflow:hidden}
+  .ins .t i{position:absolute;top:0;bottom:0;background:var(--nav);opacity:.85}
+  .ins .t.th i{background:linear-gradient(90deg,#2c8f6b,#4ee08c);left:0}
+
+  /* approach cell holds meatball + chat stacked */
+  .approach{grid-area:approach;display:grid;grid-template-columns:96px 1fr;gap:var(--gap)}
+  #meatball{min-width:0}
+  .chat{padding:22px 9px 8px;display:flex;flex-direction:column;min-width:0}
+  .chat .log{flex:1;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:11px}
+  .chat .line{color:var(--ink-dim)} .chat .line b{color:var(--nav);font-weight:600}
+  .chat .empty{color:#2c4a48;font-style:italic;margin:auto;font-size:11px}
+
+  /* damage overlay */
+  #damage{position:fixed;right:12px;bottom:12px;width:200px;height:150px;z-index:20;display:none}
+  #damage.show{display:block}
+
+  /* standby veil for modules with no live data yet */
+  .standby{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:4;
+    background:rgba(4,8,10,.55);color:#3f6b64;font-family:var(--sans);font-size:10px;letter-spacing:.18em}
+  .standby.on{display:flex}
+
+  @media (prefers-reduced-motion:reduce){ .panel::after{display:none} .lamp.on.warning{animation:none} }
+
+  /* ── tablet / mobile: stack into one scrolling column ── */
+  @media (max-width:820px){
+    body{overflow:auto}
+    .frame{height:auto;min-height:100dvh;grid-template-columns:1fr;grid-auto-rows:minmax(180px,auto);
+      grid-template-areas:"status" "pfd" "data" "map" "radar" "rwr" "weap" "approach";}
+    .approach{grid-template-columns:96px 1fr}
+    #pfd{min-height:260px}
+    #damage{position:static;width:auto;height:170px;grid-area:weap}
+  }
+  @media (max-width:520px){ .data{grid-template-columns:repeat(2,1fr)} .approach{grid-template-columns:1fr;grid-auto-rows:minmax(140px,auto)} }
 </style>
 </head>
 <body>
 
 <div class="frame">
   <div class="status">
-    <div class="brand">NUCLEAR OPTION <small>· GLASS PANEL</small></div>
+    <div class="brand">NO <small>GLASS&nbsp;PANEL</small></div>
     <div class="kv"><span class="k">Callsign</span><span class="v" id="callsign">VIPER 1‑1</span></div>
-    <div class="kv"><span class="k">Mission</span><span class="v" id="met">00:00</span></div>
+    <div class="kv"><span class="k">MET</span><span class="v" id="met">00:00</span></div>
     <div class="kv"><span class="k">Mach</span><span class="v" id="mach">0.00</span></div>
     <div class="kv"><span class="k">G</span><span class="v" id="gval">1.0</span></div>
     <div class="spacer"></div>
-    <div class="warns">
-      <div class="lamp caution" id="lampC">CAUTION</div>
-      <div class="lamp warning" id="lampW">WARNING</div>
-    </div>
-    <div class="pill sim" id="conn"><span class="dot"></span><span id="connTxt">SIM DATA</span></div>
+    <div class="lamp caution" id="lampC">CAUT</div>
+    <div class="lamp warning" id="lampW">WARN</div>
+    <div class="lamp warning" id="lampRWR" style="display:none">MISSILE</div>
+    <div class="pill sim" id="conn"><span class="dot"></span><span id="connTxt">SIM</span></div>
   </div>
 
-  <div class="main">
-    <div class="panel" id="pfd"><div class="cap">Primary Flight · HMD</div><canvas id="pfdCanvas"></canvas></div>
+  <div class="panel" id="map"><div class="cap">Map · N‑UP</div><div class="cap r" id="mapScale">40 km</div><canvas id="mapCv"></canvas></div>
+  <div class="panel" id="radar"><div class="cap">Radar</div><div class="cap r" id="radarScale">30 km</div><canvas id="radarCv"></canvas></div>
+  <div class="panel" id="rwr"><div class="cap">RWR</div><canvas id="rwrCv"></canvas><div class="standby on" id="rwrStby">STANDBY</div></div>
 
-    <div class="rail">
-      <div class="panel stores">
-        <h3>Stores</h3>
-        <div class="wsel"><span class="name" id="wName">—</span><span class="ammo"><span id="wAmmo">0</span> <small id="wUnit">RDS</small></span></div>
-        <div class="wlist" id="wList"></div>
-      </div>
-      <div class="panel card">
-        <h3>Countermeasures</h3>
-        <div class="cm">
-          <div class="cmb"><div class="top"><span class="lbl">FLARE</span><span class="n" id="flN">60</span></div><div class="bar flare"><span id="flBar"></span></div></div>
-          <div class="cmb"><div class="top"><span class="lbl">CHAFF</span><span class="n" id="chN">60</span></div><div class="bar chaff"><span id="chBar"></span></div></div>
-        </div>
-      </div>
-      <div class="panel card">
-        <h3>Fuel · Engine</h3>
-        <div class="tiles">
-          <div class="tile"><div class="k">Fuel Remaining</div><div class="v" id="fuelV">—</div><div class="thbar"><span id="fuelBar"></span></div></div>
-          <div class="tile"><div class="k">Endurance</div><div class="v" id="endV">—</div><div class="u" id="endU">to bingo</div></div>
-        </div>
-      </div>
-      <div class="panel card grow" id="radar"><div class="cap">Tactical · Radar</div><canvas id="radarCanvas"></canvas></div>
+  <div class="panel weap" id="weap">
+    <div class="cap">Stores</div>
+    <div class="wsel"><span class="name" id="wName">—</span><span class="ammo"><span id="wAmmo">0</span> <small id="wUnit"></small></span></div>
+    <div class="wlist" id="wList"></div>
+    <div class="cmwrap">
+      <div class="cmb"><div class="top">FLARE <b id="flN">—</b></div><div class="bar fl"><span id="flBar"></span></div></div>
+      <div class="cmb"><div class="top">CHAFF <b id="chN">—</b></div><div class="bar ch"><span id="chBar"></span></div></div>
     </div>
+  </div>
 
-    <div class="bottom">
-      <div class="panel inputs">
-        <h3 style="margin:0 0 6px;font-family:var(--sans);font-size:10px;letter-spacing:.22em;color:var(--label);text-transform:uppercase">HOTAS Inputs</h3>
-        <div class="inrow"><span class="lbl">Pitch</span><div class="track"><span class="mid"></span><div class="fillC" id="inP"></div></div><span class="val" id="inPv">0</span></div>
-        <div class="inrow"><span class="lbl">Roll</span><div class="track"><span class="mid"></span><div class="fillC" id="inR"></div></div><span class="val" id="inRv">0</span></div>
-        <div class="inrow"><span class="lbl">Yaw</span><div class="track"><span class="mid"></span><div class="fillC" id="inY"></div></div><span class="val" id="inYv">0</span></div>
-        <div class="inrow"><span class="lbl">Throttle</span><div class="track"><div class="fillL" id="inT"></div></div><span class="val" id="inTv">70%</span></div>
-      </div>
-      <div class="panel card">
-        <h3>Systems</h3>
-        <div class="tiles">
-          <div class="tile"><div class="k">Gear</div><div class="v" id="gearV">UP</div></div>
-          <div class="tile"><div class="k">AoA</div><div class="v" id="aoaV">—</div><div class="u">deg</div></div>
-        </div>
-      </div>
+  <div class="panel" id="pfd"><div class="cap">Flight · HMD</div><canvas id="pfdCv"></canvas></div>
+
+  <div class="approach">
+    <div class="panel" id="meatballP"><div class="cap">Ball</div><canvas id="meatball"></canvas></div>
+    <div class="panel chat" id="chatP"><div class="cap">Comms</div><div class="log" id="chatLog"><div class="empty">— no messages —</div></div></div>
+  </div>
+
+  <div class="data" id="data">
+    <div class="tile"><div class="k">Fuel</div><div class="v" id="fuelV">—</div><div class="bar fl" style="margin-top:5px"><span id="fuelBar" style="background:linear-gradient(90deg,#2c8f6b,#4ee08c)"></span></div></div>
+    <div class="tile"><div class="k">Bingo In</div><div class="v" id="endV">—</div><div class="u">m:s</div></div>
+    <div class="tile"><div class="k">V/S</div><div class="v" id="vsV">—</div><div class="u">ft/min</div></div>
+    <div class="tile"><div class="k">AoA</div><div class="v" id="aoaV">—</div><div class="u">deg</div></div>
+    <div class="tile"><div class="k">Gear</div><div class="v" id="gearV">—</div></div>
+    <div class="tile"><div class="k">Radar Alt</div><div class="v" id="aglV">—</div><div class="u">ft</div></div>
+    <div class="tile" style="grid-column:span 2"><div class="k">HOTAS · P / R / Y / THR</div>
+      <div class="ins"><div class="t"><i id="inP"></i></div><div class="t"><i id="inR"></i></div><div class="t"><i id="inY"></i></div><div class="t th"><i id="inT"></i></div></div>
     </div>
   </div>
 </div>
 
+<canvas class="panel" id="damage"></canvas>
+
 <script>
-/* ─────────────────────────────────────────────────────────────────────────
-   TELEMETRY CONTRACT  — this is exactly what the BepInEx mod must send (JSON,
-   ~30 Hz over WebSocket). Call applyTelemetry(obj) with any subset; missing
-   keys keep their last value.  Units: speed kn, alt/agl ft, hdg/pitch/roll/aoa
-   deg, vs ft/min, fuelKg kg, fuelSec s, throttle/inputs 0..1 (inputs -1..1).
-     { ias, tas, mach, alt, agl, vs, hdg, pitch, roll, aoa, g, throttle,
-       gear:bool, fuelKg, fuelSec, weaponIndex, weapons:[{name,ammo,unit}],
-       flares, chaff, flaresMax, chaffMax,
-       target:{name,rng,brg,locked}, contacts:[{brg,rng,type}],
-       inputs:{pitch,roll,yaw,throttle} }                                     */
+/* ── telemetry contract (docs/TELEMETRY.md). Send any subset ~30 Hz. ── */
 const S={live:false,ias:250,tas:262,mach:.4,alt:6000,agl:5800,vs:0,hdg:90,pitch:0,roll:0,
-  aoa:4,g:1,throttle:.7,gear:false,fuelKg:4200,fuelMax:5000,fuelSec:1900,
+  aoa:5,g:1,throttle:.7,gear:false,fuelKg:4200,fuelMax:5000,fuelSec:1900,
   weaponIndex:0,weapons:[
     {name:'GAU CANNON',ammo:480,unit:'RDS'},{name:'AIM‑SR',ammo:4,unit:'MSL'},
     {name:'AGM STRIKE',ammo:6,unit:'MSL'},{name:'MK82 ×8',ammo:8,unit:'BMB'},
     {name:'☢ NUCLEAR',ammo:1,unit:'SPL'}],
   flares:60,chaff:60,flaresMax:60,chaffMax:60,
   target:{name:'SAM',rng:14200,brg:104,locked:false},
-  contacts:[{brg:104,rng:14200,type:'H'},{brg:60,rng:9800,type:'H'},{brg:250,rng:16000,type:'F'},{brg:330,rng:7200,type:'U'}],
-  inputs:{pitch:0,roll:0,yaw:0,throttle:.7},met:0,caution:false,warning:false};
+  contacts:[], rwr:[], chat:[], damage:null,
+  met:0,caution:false,warning:false,_hasRWR:false,_hasChat:false};
 
-function applyTelemetry(t){ Object.assign(S,t); if(t.inputs)S.inputs=Object.assign(S.inputs,t.inputs);
-  S.live=true; setConn(true); }
-function setConn(live){ const p=document.getElementById('conn'); p.className='pill '+(live?'live':'sim');
-  document.getElementById('connTxt').textContent=live?'LIVE · MOD':'SIM DATA'; }
-/* Track 2 wires this up; CSP blocks it inside this preview so we stay on sim.
-   connectLive('ws://<gaming-pc-ip>:8787'); */
-function connectLive(url){ try{ const ws=new WebSocket(url);
-  ws.onopen=()=>setConn(true); ws.onclose=()=>{S.live=false;setConn(false);};
-  ws.onmessage=e=>{try{applyTelemetry(JSON.parse(e.data));}catch(_){}}; }catch(_){} }
+function applyTelemetry(t){
+  Object.assign(S,t);
+  if(t.inputs)S.inputs=Object.assign(S.inputs||{},t.inputs);
+  if(t.rwr!==undefined)S._hasRWR=true;
+  if(t.chat!==undefined)S._hasChat=true;
+  S.live=true; setConn(true);
+}
+S.inputs={pitch:0,roll:0,yaw:0,throttle:.7};
+function setConn(live){const p=document.getElementById('conn');p.className='pill '+(live?'live':'sim');
+  document.getElementById('connTxt').textContent=live?'LIVE':'SIM';}
+function connectLive(url){try{const ws=new WebSocket(url);
+  ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);};
+  ws.onmessage=e=>{try{applyTelemetry(JSON.parse(e.data));}catch(_){}};}catch(_){}}
 
-/* ── simulated flight so the panel is alive today ── */
+/* ── simulation (runs until a live feed connects) ── */
 let last=performance.now();
+function seedContacts(){S.contacts=[
+  {brg:104,rng:14200,alt:2000,spd:0,type:'H',name:'SAM',locked:true,aspect:0},
+  {brg:60,rng:9800,alt:8500,spd:280,type:'H',name:'FS‑12',locked:false,aspect:150},
+  {brg:250,rng:16000,alt:9000,spd:240,type:'F',name:'T/A‑30',locked:false,aspect:20},
+  {brg:330,rng:7200,alt:400,spd:60,type:'U',name:'?',locked:false,aspect:90}];
+  S.rwr=[{brg:104,band:'A',lock:1},{brg:60,band:'A',lock:0},{brg:200,band:'S',lock:0}];
+  S.chat=[{who:'BLUE HQ',msg:'Strike package cleared hot.'},{who:'VIPER 1‑2',msg:'Tied on, taking the trailer.'}];
+  S.damage={hull:1,sections:{nose:1,lwing:1,rwing:1,tail:1,engine:1}};}
+seedContacts();
 function sim(dt){
-  S.met+=dt; const t=S.met;
-  const rollCmd=26*Math.sin(t*0.13)+8*Math.sin(t*0.41);
-  S.roll+=(rollCmd-S.roll)*Math.min(1,dt*1.6);
-  const pitchCmd=6*Math.sin(t*0.09)+2*Math.sin(t*0.7);
-  S.pitch+=(pitchCmd-S.pitch)*Math.min(1,dt*1.6);
+  const t=S.met+=dt;
+  const rollCmd=26*Math.sin(t*0.13)+8*Math.sin(t*0.41); S.roll+=(rollCmd-S.roll)*Math.min(1,dt*1.6);
+  const pitchCmd=6*Math.sin(t*0.09)+2*Math.sin(t*0.7); S.pitch+=(pitchCmd-S.pitch)*Math.min(1,dt*1.6);
   S.hdg=(S.hdg+S.roll*0.09*dt*60/60+360)%360;
   S.throttle=0.72+0.24*Math.sin(t*0.05);
   const iasT=170+S.throttle*250-S.pitch*5; S.ias+=(iasT-S.ias)*Math.min(1,dt*0.6);
   S.tas=S.ias*1.06; S.mach=S.ias/660;
-  S.vs=Math.sin(S.pitch*Math.PI/180)*S.ias*101; // ft/min-ish
-  S.alt=Math.max(400,S.alt+S.vs*dt/60); S.agl=Math.max(50,S.alt-180);
-  S.g=Math.max(0.2,1/Math.cos(S.roll*Math.PI/180))+ (Math.abs(S.pitch)>4?0.3:0);
+  S.vs=Math.sin(S.pitch*Math.PI/180)*S.ias*101; S.alt=Math.max(400,S.alt+S.vs*dt/60); S.agl=Math.max(50,S.alt-180);
+  S.g=Math.max(0.2,1/Math.cos(S.roll*Math.PI/180))+(Math.abs(S.pitch)>4?0.3:0);
   S.aoa=Math.max(0,5-S.pitch*0.25+(S.g-1)*2.4);
   S.fuelKg=Math.max(0,S.fuelKg-S.throttle*0.55*dt); S.fuelSec=S.fuelKg/Math.max(0.3,S.throttle)*1.6;
   if(Math.floor(t/11)!==Math.floor((t-dt)/11)) S.weaponIndex=(S.weaponIndex+1)%S.weapons.length;
-  if(Math.floor(t/6.5)!==Math.floor((t-dt)/6.5)){ if(S.flares>0)S.flares-=2; if(S.chaff>0)S.chaff-=2; }
+  if(Math.floor(t/6.5)!==Math.floor((t-dt)/6.5)){if(S.flares>0)S.flares-=2;if(S.chaff>0)S.chaff-=2;}
   if(S.flares<=0&&S.chaff<=0){S.flares=S.flaresMax;S.chaff=S.chaffMax;}
-  S.contacts.forEach(c=>{ c.rng-=(c.type==='H'?70:15)*dt; if(c.rng<1200)c.rng=15000+Math.random()*3000; });
-  S.target=Object.assign(S.target,{rng:S.contacts[0].rng,brg:S.contacts[0].brg,locked:S.contacts[0].rng<9000});
-  S.inputs.roll=Math.max(-1,Math.min(1,S.roll/35+0.04*Math.sin(t*3)));
-  S.inputs.pitch=Math.max(-1,Math.min(1,S.pitch/15));
+  S.contacts.forEach(c=>{c.rng-=(c.type==='H'?70:15)*dt;if(c.rng<1200)c.rng=15000+Math.random()*3000;});
+  S.rwr[0].lock=S.contacts[0].rng<8000?2:1; document.getElementById('lampRWR').style.display=S.rwr.some(r=>r.lock>=2)?'':'none';
+  S.inputs.roll=Math.max(-1,Math.min(1,S.roll/35)); S.inputs.pitch=Math.max(-1,Math.min(1,S.pitch/15));
   S.inputs.yaw=0.15*Math.sin(t*0.6); S.inputs.throttle=S.throttle;
   S.caution=(S.fuelSec<300)||(S.aoa>15); S.warning=(S.aoa>18)||(S.agl<150);
+  S._hasRWR=true; S._hasChat=true; // sim has them
 }
 
 /* ── canvas plumbing ── */
-function hidpi(cv){ const r=Math.min(2,window.devicePixelRatio||1),b=cv.getBoundingClientRect();
-  cv.width=Math.max(1,b.width*r); cv.height=Math.max(1,b.height*r);
-  const cx=cv.getContext('2d'); cx.setTransform(r,0,0,r,0,0); return {cx,w:b.width,h:b.height}; }
-const P=document.getElementById('pfdCanvas'), R=document.getElementById('radarCanvas');
-const C='#79f0cf', DIM='#356b62', LBL='#6f938d', NAV='#39d6ff', AMBER='#ffb531', RED='#ff5347';
+function fit(id){const cv=document.getElementById(id),r=Math.min(2,devicePixelRatio||1),b=cv.getBoundingClientRect();
+  cv.width=Math.max(1,b.width*r);cv.height=Math.max(1,b.height*r);const cx=cv.getContext('2d');cx.setTransform(r,0,0,r,0,0);return{cx,w:b.width,h:b.height};}
+const C='#79f0cf',DIM='#356b62',LBL='#6f938d',NAV='#39d6ff',AMBER='#ffb531',RED='#ff5347',GREEN='#4ee08c';
+const D2R=Math.PI/180;
 
-function drawPFD(){
-  const {cx,w,h}=hidpi(P); cx.clearRect(0,0,w,h);
-  const cxp=w/2, cyp=h/2+8, ppd=6.2;
-  cx.font='11px ui-monospace,Consolas,monospace'; cx.lineWidth=1.5;
-  // horizon + pitch ladder (HMD style: lines only, no filled sky/ground)
-  cx.save(); cx.beginPath(); cx.rect(70,54,w-140,h-104); cx.clip();
-  cx.translate(cxp,cyp); cx.rotate(-S.roll*Math.PI/180); cx.translate(0,S.pitch*ppd);
-  cx.strokeStyle=C; cx.globalAlpha=.95;
-  cx.beginPath(); cx.moveTo(-w*.7,0); cx.lineTo(-34,0); cx.moveTo(34,0); cx.lineTo(w*.7,0); cx.stroke();
-  cx.fillStyle=C; cx.textAlign='center';
-  for(let p=-30;p<=30;p+=10){ if(p===0)continue; const y=-p*ppd, lw=p%20===0?66:40;
-    cx.globalAlpha=.8; cx.beginPath(); cx.moveTo(-lw/2,y); cx.lineTo(lw/2,y); cx.stroke();
-    cx.beginPath();cx.moveTo(-lw/2,y);cx.lineTo(-lw/2,y+(p>0?6:-6));cx.moveTo(lw/2,y);cx.lineTo(lw/2,y+(p>0?6:-6));cx.stroke();
-    cx.fillText(Math.abs(p),-lw/2-14,y+4); cx.fillText(Math.abs(p),lw/2+14,y+4); }
+/* ── compact PFD ── */
+function drawPFD(){const {cx,w,h}=fit('pfdCv');cx.clearRect(0,0,w,h);
+  const cxp=w*0.5,cyp=h*0.52,ppd=Math.max(3.4,h/34);
+  cx.save();cx.beginPath();cx.rect(58,18,w-116,h-34);cx.clip();
+  cx.translate(cxp,cyp);cx.rotate(S.roll*D2R);cx.translate(0,S.pitch*ppd);
+  cx.strokeStyle=C;cx.lineWidth=1.4;cx.globalAlpha=.95;
+  cx.beginPath();cx.moveTo(-w*.7,0);cx.lineTo(-28,0);cx.moveTo(28,0);cx.lineTo(w*.7,0);cx.stroke();
+  cx.fillStyle=C;cx.font='9px var(--mono)';cx.textAlign='center';
+  for(let p=-30;p<=30;p+=10){if(!p)continue;const y=-p*ppd,lw=p%20===0?46:28;cx.globalAlpha=.7;
+    cx.beginPath();cx.moveTo(-lw/2,y);cx.lineTo(lw/2,y);cx.stroke();}
   cx.restore();
-  // bank arc + pointer
-  cx.strokeStyle=DIM; cx.globalAlpha=1; cx.beginPath(); cx.arc(cxp,cyp,120,-Math.PI*0.72,-Math.PI*0.28); cx.stroke();
-  [-45,-30,-20,-10,0,10,20,30,45].forEach(a=>{ const r=a*Math.PI/180-Math.PI/2;
-    const x1=cxp+Math.cos(r)*120,y1=cyp+Math.sin(r)*120,l=a%30===0?11:6;
-    const x2=cxp+Math.cos(r)*(120-l),y2=cyp+Math.sin(r)*(120-l);
-    cx.strokeStyle=DIM;cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke(); });
-  const rp=-S.roll*Math.PI/180-Math.PI/2; cx.fillStyle=AMBER; cx.beginPath();
-  cx.moveTo(cxp+Math.cos(rp)*108,cyp+Math.sin(rp)*108);
-  cx.lineTo(cxp+Math.cos(rp-.03)*118,cyp+Math.sin(rp-.03)*118);
-  cx.lineTo(cxp+Math.cos(rp+.03)*118,cyp+Math.sin(rp+.03)*118); cx.fill();
-  // boresight / waterline
-  cx.strokeStyle=AMBER; cx.lineWidth=2; cx.beginPath();
-  cx.moveTo(cxp-34,cyp);cx.lineTo(cxp-12,cyp);cx.lineTo(cxp-6,cyp+7);
-  cx.moveTo(cxp+34,cyp);cx.lineTo(cxp+12,cyp);cx.lineTo(cxp+6,cyp+7);
-  cx.moveTo(cxp,cyp-3);cx.lineTo(cxp,cyp-9); cx.stroke();
-  // velocity vector
-  const vv=cxp+S.inputs.yaw*40, vy=cyp+ (S.vs<0?18:-18)*Math.min(1,Math.abs(S.vs)/2000);
-  cx.strokeStyle=C;cx.lineWidth=1.6;cx.beginPath();cx.arc(vv,vy,6,0,7);cx.moveTo(vv-6,vy);cx.lineTo(vv-13,vy);
-  cx.moveTo(vv+6,vy);cx.lineTo(vv+13,vy);cx.moveTo(vv,vy-6);cx.lineTo(vv,vy-12);cx.stroke();
-  // tapes
-  tape(cx,74,cyp,S.ias,10,'IAS',w,h,'L'); tape(cx,w-74,cyp,S.alt,100,'ALT',w,h,'R');
-  hdgTape(cx,cxp,52,S.hdg,w);
-  // digital VS
-  cx.fillStyle=LBL;cx.textAlign='right';cx.font='10px var(--sans),system-ui';
-  cx.fillText('VS',w-16,cyp+150); cx.fillStyle= S.vs<-100?AMBER:C; cx.font='13px ui-monospace,monospace';
-  cx.fillText((S.vs>=0?'+':'')+Math.round(S.vs),w-16,cyp+165);
+  // boresight
+  cx.strokeStyle=AMBER;cx.lineWidth=2;cx.beginPath();
+  cx.moveTo(cxp-26,cyp);cx.lineTo(cxp-9,cyp);cx.lineTo(cxp-4,cyp+6);
+  cx.moveTo(cxp+26,cyp);cx.lineTo(cxp+9,cyp);cx.lineTo(cxp+4,cyp+6);cx.stroke();
+  tape(cx,52,cyp,S.ias,10,w,h,'L'); tape(cx,w-52,cyp,S.alt,100,w,h,'R'); hdgTape(cx,cxp,15,S.hdg);
 }
-function tape(cx,x,cy,val,step,label,w,h,side){
-  const ph=6, span=90; cx.save(); cx.beginPath();cx.rect(x-40,cy-span,80,span*2);cx.clip();
-  cx.strokeStyle=DIM;cx.fillStyle=DIM;cx.font='11px ui-monospace,monospace';
-  cx.textAlign=side==='L'?'left':'right'; const tx=side==='L'?x-30:x+30;
-  const base=Math.round(val/step)*step;
-  for(let i=-6;i<=6;i++){ const v=base+i*step; const y=cy-(v-val)/step*ph*2.4;
-    if(y<cy-span||y>cy+span)continue; const major=(v%(step*5)===0);
-    cx.globalAlpha=major?.9:.5; cx.beginPath();
-    if(side==='L'){cx.moveTo(x+34,y);cx.lineTo(x+34-(major?12:6),y);}else{cx.moveTo(x-34,y);cx.lineTo(x-34+(major?12:6),y);}
-    cx.stroke(); if(major&&v>=0)cx.fillText(v,tx,y+4); }
-  cx.restore();
-  // current value box
-  cx.globalAlpha=1; cx.fillStyle='#04080a'; cx.strokeStyle=AMBER; cx.lineWidth=1.4;
-  const bx=side==='L'?x-40:x-0; cx.fillRect(x-40,cy-13,80,26); cx.strokeRect(x-40,cy-13,80,26);
-  cx.fillStyle='#e3f6f0';cx.textAlign='center';cx.font='16px ui-monospace,monospace';
-  cx.fillText(Math.round(val),x,cy+5);
-  cx.fillStyle=LBL;cx.font='9px system-ui';cx.fillText(label,x,cy-18);
-}
-function hdgTape(cx,cx0,y,hdg,w){
-  const span=160, ppd=3.4; cx.save();cx.beginPath();cx.rect(cx0-span,y-14,span*2,34);cx.clip();
-  cx.strokeStyle=DIM;cx.fillStyle=DIM;cx.font='10px ui-monospace,monospace';cx.textAlign='center';
-  for(let d=-50;d<=50;d+=5){ let hd=Math.round(hdg/5)*5+d; const x=cx0+(hd-hdg)*ppd; hd=(hd+360)%360;
-    const major=hd%10===0; cx.globalAlpha=major?.9:.5; cx.beginPath();cx.moveTo(x,y);cx.lineTo(x,y+(major?9:5));cx.stroke();
-    if(hd%30===0){cx.fillText(hd===0?'N':hd===90?'E':hd===180?'S':hd===270?'W':(''+hd/10).padStart(2,'0'),x,y+20);} }
-  cx.restore();
-  cx.globalAlpha=1;cx.fillStyle=AMBER;cx.beginPath();cx.moveTo(cx0,y+2);cx.lineTo(cx0-6,y-8);cx.lineTo(cx0+6,y-8);cx.fill();
-  cx.fillStyle='#04080a';cx.strokeStyle=AMBER;cx.lineWidth=1.3;cx.fillRect(cx0-22,y-30,44,18);cx.strokeRect(cx0-22,y-30,44,18);
-  cx.fillStyle='#e3f6f0';cx.font='13px ui-monospace,monospace';cx.fillText((''+Math.round(hdg)%360).padStart(3,'0'),cx0,y-16);
-}
-function drawRadar(){
-  const {cx,w,h}=hidpi(R); cx.clearRect(0,0,w,h);
-  const ox=w/2, oy=h*0.56, maxR=Math.min(w,h)*0.42, scale=maxR/18000;
+function tape(cx,x,cy,val,step,w,h,side){const ph=5.2,span=Math.min(70,h/2-24);
+  cx.save();cx.beginPath();cx.rect(x-34,cy-span,68,span*2);cx.clip();
+  cx.strokeStyle=DIM;cx.fillStyle=DIM;cx.font='9px var(--mono)';cx.textAlign=side==='L'?'left':'right';
+  const base=Math.round(val/step)*step,tx=side==='L'?x-26:x+26;
+  for(let i=-6;i<=6;i++){const v=base+i*step,y=cy-(v-val)/step*ph*2.2;if(y<cy-span||y>cy+span)continue;
+    const maj=v%(step*5)===0;cx.globalAlpha=maj?.85:.4;cx.beginPath();
+    if(side==='L'){cx.moveTo(x+30,y);cx.lineTo(x+30-(maj?9:5),y);}else{cx.moveTo(x-30,y);cx.lineTo(x-30+(maj?9:5),y);}
+    cx.stroke();if(maj&&v>=0)cx.fillText(v,tx,y+3);}
+  cx.restore();cx.globalAlpha=1;cx.fillStyle='#04080a';cx.strokeStyle=AMBER;cx.lineWidth=1.3;
+  cx.fillRect(x-34,cy-11,68,22);cx.strokeRect(x-34,cy-11,68,22);
+  cx.fillStyle='#e3f6f0';cx.textAlign='center';cx.font='14px var(--mono)';cx.fillText(Math.round(val),x,cy+5);}
+function hdgTape(cx,cx0,y,hdg){const span=110,ppd=2.9;cx.save();cx.beginPath();cx.rect(cx0-span,y-2,span*2,26);cx.clip();
+  cx.strokeStyle=DIM;cx.fillStyle=DIM;cx.font='9px var(--mono)';cx.textAlign='center';
+  for(let d=-40;d<=40;d+=5){let hd=Math.round(hdg/5)*5+d;const x=cx0+(hd-hdg)*ppd;hd=(hd+360)%360;const maj=hd%10===0;
+    cx.globalAlpha=maj?.85:.4;cx.beginPath();cx.moveTo(x,y+2);cx.lineTo(x,y+2+(maj?7:4));cx.stroke();
+    if(hd%30===0)cx.fillText(hd===0?'N':hd===90?'E':hd===180?'S':hd===270?'W':(''+hd/10).padStart(2,'0'),x,y+20);}
+  cx.restore();cx.globalAlpha=1;cx.fillStyle=AMBER;cx.beginPath();cx.moveTo(cx0,y+4);cx.lineTo(cx0-5,y-4);cx.lineTo(cx0+5,y-4);cx.fill();}
+
+/* ── MAP (north-up) ── */
+function drawMap(){const {cx,w,h}=fit('mapCv');cx.clearRect(0,0,w,h);
+  const ox=w/2,oy=h/2,maxR=Math.min(w,h)*0.46,rangeM=40000,sc=maxR/rangeM;
+  document.getElementById('mapScale').textContent=(rangeM/1000)+' km';
+  cx.strokeStyle='#0f2831';cx.lineWidth=1;
+  for(let gx=-2;gx<=2;gx++){cx.globalAlpha=.5;cx.beginPath();cx.moveTo(ox+gx*maxR/2,oy-maxR);cx.lineTo(ox+gx*maxR/2,oy+maxR);cx.stroke();
+    cx.beginPath();cx.moveTo(ox-maxR,oy+gx*maxR/2);cx.lineTo(ox+maxR,oy+gx*maxR/2);cx.stroke();}
+  cx.globalAlpha=1;cx.strokeStyle='#123038';[maxR/2,maxR].forEach(r=>{cx.beginPath();cx.arc(ox,oy,r,0,7);cx.stroke();});
+  cx.fillStyle=LBL;cx.font='9px var(--mono)';cx.textAlign='left';cx.fillText('N',ox+3,oy-maxR+11);
+  // contacts (north-up: screen = world)
+  S.contacts.forEach(c=>{const a=c.brg*D2R,r=Math.min(maxR,c.rng*sc),x=ox+Math.sin(a)*r,y=oy-Math.cos(a)*r;blip(cx,x,y,c);});
+  // ownship
+  cx.save();cx.translate(ox,oy);cx.rotate(S.hdg*D2R);cx.strokeStyle=AMBER;cx.fillStyle=AMBER;cx.lineWidth=1.6;
+  cx.beginPath();cx.moveTo(0,-9);cx.lineTo(-6,7);cx.lineTo(0,3);cx.lineTo(6,7);cx.closePath();cx.fill();
+  cx.beginPath();cx.moveTo(0,-9);cx.lineTo(0,-22);cx.stroke();cx.restore();}
+
+/* ── RADAR (track-up PPI, more detail) ── */
+function drawRadar(){const {cx,w,h}=fit('radarCv');cx.clearRect(0,0,w,h);
+  const ox=w/2,oy=h*0.62,maxR=Math.min(w*0.46,h*0.56),rangeM=30000,sc=maxR/rangeM;
+  document.getElementById('radarScale').textContent=(rangeM/1000)+' km';
   cx.strokeStyle='#123038';cx.lineWidth=1;
-  [6000,12000,18000].forEach(rng=>{cx.beginPath();cx.arc(ox,oy,rng*scale,0,7);cx.stroke();});
-  cx.beginPath();cx.moveTo(ox,oy-maxR);cx.lineTo(ox,oy+maxR*0.5);cx.moveTo(ox-maxR,oy);cx.lineTo(ox+maxR,oy);cx.stroke();
-  // ownship (heading-up)
-  cx.fillStyle=AMBER;cx.beginPath();cx.moveTo(ox,oy-8);cx.lineTo(ox-5,oy+6);cx.lineTo(ox+5,oy+6);cx.fill();
-  cx.font='10px ui-monospace,monospace';cx.textAlign='left';cx.fillStyle=LBL;cx.fillText('18k',ox+3,oy-maxR+11);
-  S.contacts.forEach(c=>{ const rel=(c.brg-S.hdg)*Math.PI/180; const r=Math.min(maxR,c.rng*scale);
-    const x=ox+Math.sin(rel)*r, y=oy-Math.cos(rel)*r;
-    const col=c.type==='H'?RED:c.type==='F'?NAV:'#ffb531'; cx.strokeStyle=col;cx.fillStyle=col;cx.lineWidth=1.6;
-    if(c.type==='H'){cx.strokeRect(x-4,y-4,8,8);} else if(c.type==='F'){cx.beginPath();cx.arc(x,y,4,0,7);cx.stroke();}
-    else{cx.beginPath();cx.moveTo(x,y-5);cx.lineTo(x+5,y);cx.lineTo(x,y+5);cx.lineTo(x-5,y);cx.closePath();cx.stroke();} });
-  // locked target line
-  const tg=S.target; const rel=(tg.brg-S.hdg)*Math.PI/180,r=Math.min(maxR,tg.rng*scale);
-  const tx=ox+Math.sin(rel)*r,ty=oy-Math.cos(rel)*r;
-  cx.strokeStyle=tg.locked?RED:'#2a4a52';cx.setLineDash([4,4]);cx.beginPath();cx.moveTo(ox,oy);cx.lineTo(tx,ty);cx.stroke();cx.setLineDash([]);
-  cx.fillStyle=tg.locked?RED:LBL;cx.textAlign='center';cx.font='10px ui-monospace,monospace';
-  cx.fillText(tg.name+'  '+(tg.rng/1000).toFixed(1)+'km',ox,h-10);
-}
+  [maxR/3,2*maxR/3,maxR].forEach((r,i)=>{cx.beginPath();cx.arc(ox,oy,r,-Math.PI,0,false);cx.stroke();
+    cx.fillStyle=LBL;cx.font='8px var(--mono)';cx.textAlign='left';cx.fillText(Math.round(rangeM/1000*(i+1)/3)+'k',ox+2,oy-r+9);});
+  cx.beginPath();cx.moveTo(ox-maxR,oy);cx.lineTo(ox+maxR,oy);cx.moveTo(ox,oy);cx.lineTo(ox,oy-maxR);cx.stroke();
+  cx.fillStyle=AMBER;cx.beginPath();cx.moveTo(ox,oy-7);cx.lineTo(ox-5,oy+5);cx.lineTo(ox+5,oy+5);cx.fill();
+  let locked=null;
+  S.contacts.forEach(c=>{const rel=(c.brg-S.hdg)*D2R;if(Math.cos(rel)<-.05&&c.rng*sc>maxR)return;
+    const r=Math.min(maxR,c.rng*sc),x=ox+Math.sin(rel)*r,y=oy-Math.cos(rel)*r;blip(cx,x,y,c);
+    if(c.type==='H'){cx.fillStyle=DIM;cx.font='8px var(--mono)';cx.textAlign='left';
+      cx.fillText(Math.round((c.alt||0)/100)*100+'',x+6,y-2);cx.fillText((c.spd||0)+'kt',x+6,y+7);}
+    if(c.locked)locked=c;});
+  // locked-target data block
+  if(locked){cx.fillStyle=RED;cx.font='10px var(--mono)';cx.textAlign='left';const bx=8,by=h-40;
+    cx.fillText('LOCK '+(locked.name||'TGT'),bx,by);
+    cx.fillStyle=AMBER;cx.fillText('RNG '+(locked.rng/1000).toFixed(1)+'km',bx,by+13);
+    cx.fillText('ALT '+Math.round((locked.alt||0)*3.28)+'ft   BRG '+Math.round(locked.brg).toString().padStart(3,'0'),bx,by+26);}}
+
+function blip(cx,x,y,c){const col=c.type==='H'?RED:c.type==='F'?NAV:AMBER;cx.strokeStyle=col;cx.fillStyle=col;cx.lineWidth=1.5;
+  if(c.type==='H'){cx.strokeRect(x-4,y-4,8,8);}
+  else if(c.type==='F'){cx.beginPath();cx.arc(x,y,4,0,7);cx.stroke();}
+  else{cx.beginPath();cx.moveTo(x,y-5);cx.lineTo(x+5,y);cx.lineTo(x,y+5);cx.lineTo(x-5,y);cx.closePath();cx.stroke();}
+  if(c.locked){cx.strokeStyle=RED;cx.lineWidth=1;cx.strokeRect(x-7,y-7,14,14);}}
+
+/* ── RWR (circular threat scope) ── */
+function drawRWR(){const st=document.getElementById('rwrStby');
+  const has=S._hasRWR&&S.rwr&&S.rwr.length>=0; st.classList.toggle('on',!(S._hasRWR));
+  const {cx,w,h}=fit('rwrCv');cx.clearRect(0,0,w,h);
+  const ox=w/2,oy=h/2+4,R=Math.min(w,h)*0.40;
+  cx.strokeStyle='#123038';cx.lineWidth=1;cx.beginPath();cx.arc(ox,oy,R,0,7);cx.stroke();
+  cx.beginPath();cx.arc(ox,oy,R*0.5,0,7);cx.stroke();
+  cx.beginPath();cx.moveTo(ox,oy-R);cx.lineTo(ox,oy+R);cx.moveTo(ox-R,oy);cx.lineTo(ox+R,oy);cx.stroke();
+  cx.fillStyle=AMBER;cx.beginPath();cx.moveTo(ox,oy-5);cx.lineTo(ox-4,oy+4);cx.lineTo(ox+4,oy+4);cx.fill();
+  if(!S._hasRWR)return;
+  (S.rwr||[]).forEach(r=>{const rel=(r.brg-S.hdg)*D2R,rr=R*(r.lock>=2?0.9:r.lock===1?0.62:0.5);
+    const x=ox+Math.sin(rel)*rr,y=oy-Math.cos(rel)*rr,col=r.lock>=2?RED:r.lock===1?AMBER:GREEN;
+    cx.fillStyle=col;cx.font='bold 11px var(--mono)';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(r.band||'?',x,y);
+    if(r.lock>=2){cx.strokeStyle=RED;cx.lineWidth=1.4;cx.beginPath();cx.arc(x,y,9,0,7);cx.stroke();}});
+  cx.textBaseline='alphabetic';}
+
+/* ── Meatball + AoA indexer (synthesized glideslope from FPA) ── */
+function drawMeatball(){const {cx,w,h}=fit('meatball');cx.clearRect(0,0,w,h);
+  const cxp=w/2,cyp=h/2,span=h*0.34;
+  const tas=Math.max(1,S.tas*0.5144);const fpa=Math.atan2(-(S.vs*0.00508),tas)*57.2958; // deg, neg=descending
+  const dev=Math.max(-1,Math.min(1,((-3.5)-fpa)/2.0)); // + = high, - = low
+  // datum
+  cx.strokeStyle=GREEN;cx.lineWidth=2;cx.beginPath();cx.moveTo(cxp-22,cyp);cx.lineTo(cxp-6,cyp);cx.moveTo(cxp+6,cyp);cx.lineTo(cxp+22,cyp);cx.stroke();
+  cx.strokeStyle='#123038';cx.lineWidth=1;cx.beginPath();cx.moveTo(cxp,cyp-span);cx.lineTo(cxp,cyp+span);cx.stroke();
+  // ball
+  const by=cyp - dev*span, on=Math.abs(dev)<0.15;
+  cx.fillStyle=on?GREEN:(Math.abs(dev)>0.7?RED:AMBER);cx.beginPath();cx.arc(cxp,by,6,0,7);cx.fill();
+  if(!on){cx.strokeStyle=cx.fillStyle;cx.lineWidth=1;cx.beginPath();cx.arc(cxp,by,10,0,7);cx.globalAlpha=.4;cx.stroke();cx.globalAlpha=1;}
+  // AoA indexer (right side): chevrons
+  const ix=w-16,aoaTgt=8.1,d=S.aoa-aoaTgt;
+  cx.strokeStyle=d<-1.5?GREEN:'#1c3a37';cx.lineWidth=2;cx.beginPath();cx.moveTo(ix-6,cyp-16);cx.lineTo(ix,cyp-22);cx.lineTo(ix+6,cyp-16);cx.stroke(); // fast=down low aoa -> top chevron
+  cx.strokeStyle=Math.abs(d)<=1.5?GREEN:'#1c3a37';cx.beginPath();cx.arc(ix,cyp,6,0,7);cx.stroke();
+  cx.strokeStyle=d>1.5?AMBER:'#1c3a37';cx.beginPath();cx.moveTo(ix-6,cyp+16);cx.lineTo(ix,cyp+22);cx.lineTo(ix+6,cyp+16);cx.stroke(); // slow
+  cx.fillStyle=LBL;cx.font='8px var(--mono)';cx.textAlign='center';cx.fillText('AOA '+S.aoa.toFixed(1),cxp,h-4);}
+
+/* ── damage silhouette (only when hit) ── */
+function drawDamage(){const el=document.getElementById('damage');
+  const dmg=S.damage;const hurt=dmg&&(dmg.hull<0.999||Object.values(dmg.sections||{}).some(v=>v<0.999));
+  el.classList.toggle('show',!!hurt);if(!hurt)return;
+  const {cx,w,h}=fit('damage');cx.clearRect(0,0,w,h);
+  cx.fillStyle=LBL;cx.font='9px var(--sans)';cx.textAlign='left';cx.fillText('DAMAGE',10,16);
+  const cxp=w/2,cyp=h/2+6,sc=Math.min(w,h)/150;const s=dmg.sections||{};
+  const col=v=>v>0.66?'#1c3a37':v>0.33?AMBER:RED;
+  cx.lineWidth=2;
+  // fuselage
+  cx.strokeStyle=col(dmg.hull);cx.beginPath();cx.moveTo(cxp,cyp-42*sc);cx.lineTo(cxp+6*sc,cyp+40*sc);cx.lineTo(cxp-6*sc,cyp+40*sc);cx.closePath();cx.stroke();
+  // nose
+  cx.strokeStyle=col(s.nose??1);cx.beginPath();cx.moveTo(cxp,cyp-42*sc);cx.lineTo(cxp,cyp-30*sc);cx.stroke();
+  // wings
+  cx.strokeStyle=col(s.lwing??1);cx.beginPath();cx.moveTo(cxp-4*sc,cyp-4*sc);cx.lineTo(cxp-40*sc,cyp+14*sc);cx.lineTo(cxp-6*sc,cyp+16*sc);cx.stroke();
+  cx.strokeStyle=col(s.rwing??1);cx.beginPath();cx.moveTo(cxp+4*sc,cyp-4*sc);cx.lineTo(cxp+40*sc,cyp+14*sc);cx.lineTo(cxp+6*sc,cyp+16*sc);cx.stroke();
+  // tail
+  cx.strokeStyle=col(s.tail??1);cx.beginPath();cx.moveTo(cxp-12*sc,cyp+40*sc);cx.lineTo(cxp+12*sc,cyp+40*sc);cx.stroke();}
 
 /* ── DOM tiles ── */
-function fmt(n){return n.toLocaleString('en-US');}
+function fmt(n){return Math.round(n).toLocaleString('en-US');}
 function renderDOM(){
-  document.getElementById('met').textContent=new Date(S.met*1000).toISOString().substr(14,5);
+  document.getElementById('met').textContent=new Date(Math.max(0,S.met)*1000).toISOString().substr(14,5);
   document.getElementById('mach').textContent=S.mach.toFixed(2);
-  document.getElementById('gval').textContent=S.g.toFixed(1);
-  const w=S.weapons[S.weaponIndex]||{name:'—',ammo:0,unit:''};
-  document.getElementById('wName').textContent=w.name;
-  document.getElementById('wAmmo').textContent=w.ammo; document.getElementById('wUnit').textContent=w.unit;
-  const wl=document.getElementById('wList');
-  wl.innerHTML=S.weapons.map((x,i)=>`<div class="wrow ${i===S.weaponIndex?'sel':''} ${x.ammo<=0?'empty':''}">
-    <span>${x.name}</span><span class="rc">${x.ammo} ${x.unit}</span></div>`).join('');
-  document.getElementById('flN').textContent=S.flares; document.getElementById('chN').textContent=S.chaff;
-  document.getElementById('flBar').style.width=(100*S.flares/S.flaresMax)+'%';
-  document.getElementById('chBar').style.width=(100*S.chaff/S.chaffMax)+'%';
-  const fv=document.getElementById('fuelV'); fv.textContent=fmt(Math.round(S.fuelKg))+' kg';
-  fv.className='v'+(S.fuelSec<300?' crit':S.fuelSec<600?' warn':'');
-  document.getElementById('fuelBar').style.width=(100*S.fuelKg/S.fuelMax)+'%';
-  const ev=document.getElementById('endV'); ev.textContent=new Date(S.fuelSec*1000).toISOString().substr(14,5);
-  ev.className='v'+(S.fuelSec<300?' crit':S.fuelSec<600?' warn':'');
-  document.getElementById('gearV').textContent=S.gear?'DOWN':'UP';
-  document.getElementById('gearV').style.color=S.gear?'var(--green)':'var(--white)';
-  const av=document.getElementById('aoaV'); av.textContent=S.aoa.toFixed(1);
-  av.className='v'+(S.aoa>18?' crit':S.aoa>15?' warn':'');
-  const put=(id,v,signed)=>{const el=document.getElementById(id);
-    if(signed){el.style.left='50%';el.style.width=Math.abs(v)*50+'%';el.style.transform=v<0?'translateX(-100%)':'none';}
-    else{el.style.width=(v*100)+'%';}};
-  put('inP',S.inputs.pitch,true);put('inR',S.inputs.roll,true);put('inY',S.inputs.yaw,true);put('inT',S.inputs.throttle,false);
-  document.getElementById('inPv').textContent=(S.inputs.pitch*100).toFixed(0);
-  document.getElementById('inRv').textContent=(S.inputs.roll*100).toFixed(0);
-  document.getElementById('inYv').textContent=(S.inputs.yaw*100).toFixed(0);
-  document.getElementById('inTv').textContent=Math.round(S.inputs.throttle*100)+'%';
+  document.getElementById('gval').textContent=(S.g||0).toFixed(1);
+  const w=S.weapons&&S.weapons[S.weaponIndex]||{name:'—',ammo:0,unit:''};
+  document.getElementById('wName').textContent=w.name;document.getElementById('wAmmo').textContent=w.ammo;document.getElementById('wUnit').textContent=w.unit||'';
+  document.getElementById('wList').innerHTML=(S.weapons||[]).map((x,i)=>`<div class="wrow ${i===S.weaponIndex?'sel':''}"><span>${x.name}</span><span class="rc">${x.ammo} ${x.unit||''}</span></div>`).join('');
+  document.getElementById('flN').textContent=S.flares;document.getElementById('chN').textContent=S.chaff;
+  document.getElementById('flBar').style.width=(100*S.flares/(S.flaresMax||1))+'%';
+  document.getElementById('chBar').style.width=(100*S.chaff/(S.chaffMax||1))+'%';
+  const fv=document.getElementById('fuelV');fv.textContent=fmt(S.fuelKg)+'kg';fv.className='v'+(S.fuelSec<300?' crit':S.fuelSec<600?' warn':'');
+  document.getElementById('fuelBar').style.width=(100*S.fuelKg/(S.fuelMax||1))+'%';
+  const ev=document.getElementById('endV');ev.textContent=new Date(Math.max(0,S.fuelSec)*1000).toISOString().substr(14,5);ev.className='v'+(S.fuelSec<300?' crit':S.fuelSec<600?' warn':'');
+  const vv=document.getElementById('vsV');vv.textContent=(S.vs>=0?'+':'')+fmt(S.vs);
+  const av=document.getElementById('aoaV');av.textContent=(S.aoa||0).toFixed(1);av.className='v'+(S.aoa>18?' crit':S.aoa>15?' warn':'');
+  document.getElementById('aglV').textContent=fmt(S.agl);
+  const gv=document.getElementById('gearV');gv.textContent=S.gear?'DOWN':'UP';gv.className='v'+(S.gear?' ok':'');
+  const put=(id,v,signed)=>{const el=document.getElementById(id);if(signed){el.style.left='50%';el.style.width=Math.abs(v)*50+'%';el.style.transform=v<0?'translateX(-100%)':'none';}else{el.style.left='0';el.style.width=(v*100)+'%';}};
+  const I=S.inputs||{};put('inP',I.pitch||0,true);put('inR',I.roll||0,true);put('inY',I.yaw||0,true);put('inT',I.throttle||0,false);
   document.getElementById('lampC').classList.toggle('on',S.caution);
   document.getElementById('lampW').classList.toggle('on',S.warning);
+  // chat
+  const log=document.getElementById('chatLog');
+  if(S._hasChat&&S.chat&&S.chat.length){log.innerHTML=S.chat.slice(-40).map(m=>`<div class="line"><b>${esc(m.who||'')}</b> ${esc(m.msg||m)}</div>`).join('');log.scrollTop=log.scrollHeight;}
+  else if(!S._hasChat){log.innerHTML='<div class="empty">— standby —</div>';}
 }
+function esc(s){return(''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
 
-function loop(now){ const dt=Math.min(.05,(now-last)/1000); last=now;
-  if(!S.live) sim(dt);
-  drawPFD(); drawRadar(); renderDOM(); requestAnimationFrame(loop); }
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!S.live)sim(dt);
+  drawMap();drawRadar();drawRWR();drawPFD();drawMeatball();drawDamage();renderDOM();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-window.addEventListener('resize',()=>{drawPFD();drawRadar();});
-// When the mod serves this page over HTTP, auto-connect to the live feed on the same host.
-// Opened as a local file:// it silently stays on the simulation.
+addEventListener('resize',()=>{});
+
+// Served by the mod over HTTP -> auto-connect to the live feed on the same host.
 if(location.protocol==='http:'||location.protocol==='https:'){
   connectLive((location.protocol==='https:'?'wss://':'ws://')+location.host);
 }

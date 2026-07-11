@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -8,20 +9,19 @@ using System.Threading;
 
 namespace GlassPanel
 {
-    // Dependency-free HTTP + WebSocket server on a single port.
-    //  - GET (anything not a WS upgrade) -> serves the embedded panel page.
-    //  - WS upgrade                      -> keeps the socket and receives broadcast frames.
-    // No node_modules, no NuGet websocket lib. Just sockets and a SHA1 handshake.
+    // Dependency-free HTTP + WebSocket server on a single port, on a raw Socket.
+    //  - GET (not a WS upgrade) -> serves the embedded panel page.
+    //  - WS upgrade             -> kept for broadcast frames.
     internal class MiniServer
     {
         private const string WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
         private readonly int _port;
         private readonly byte[] _pageBytes;
-        private readonly List<TcpClient> _clients = new List<TcpClient>();
+        private readonly List<Socket> _clients = new List<Socket>();
         private readonly object _lock = new object();
 
-        private TcpListener _listener;
+        private Socket _listen;
         private Thread _acceptThread;
         private volatile bool _running;
 
@@ -33,20 +33,30 @@ namespace GlassPanel
 
         public void Start()
         {
-            _running = true;
-            _listener = new TcpListener(IPAddress.Any, _port);
-            _listener.Start();
-            _acceptThread = new Thread(AcceptLoop) { IsBackground = true, Name = "GlassPanel-accept" };
-            _acceptThread.Start();
+            try
+            {
+                _running = true;
+                _listen = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                _listen.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                _listen.Bind(new IPEndPoint(IPAddress.Any, _port));
+                _listen.Listen(16);
+                Plugin.Log?.LogInfo("MiniServer LISTENING on " + _listen.LocalEndPoint);
+                _acceptThread = new Thread(AcceptLoop) { IsBackground = true, Name = "GlassPanel-accept" };
+                _acceptThread.Start();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log?.LogError("MiniServer bind FAILED: " + ex);
+            }
         }
 
         public void Stop()
         {
             _running = false;
-            try { _listener?.Stop(); } catch { }
+            try { _listen?.Close(); } catch { }
             lock (_lock)
             {
-                foreach (TcpClient c in _clients) { try { c.Close(); } catch { } }
+                foreach (Socket c in _clients) { try { c.Close(); } catch { } }
                 _clients.Clear();
             }
         }
@@ -57,36 +67,41 @@ namespace GlassPanel
         {
             while (_running)
             {
-                TcpClient client = null;
-                try { client = _listener.AcceptTcpClient(); }
-                catch { if (!_running) break; else continue; }
+                Socket client = null;
+                try { client = _listen.Accept(); }
+                catch { if (!_running) break; Thread.Sleep(50); continue; }
                 try { Handle(client); }
-                catch { try { client.Close(); } catch { } }
+                catch (Exception ex)
+                {
+                    Plugin.Log?.LogWarning("client handle error: " + ex.Message);
+                    try { client.Close(); } catch { }
+                }
             }
         }
 
-        private void Handle(TcpClient client)
+        private void Handle(Socket sock)
         {
-            NetworkStream stream = client.GetStream();
-            string request = ReadHeaders(stream);
-            if (request == null) { client.Close(); return; }
+            string request;
+            using (var stream = new NetworkStream(sock, ownsSocket: false))
+                request = ReadHeaders(stream);
+
+            if (request == null) { sock.Close(); return; }
 
             if (request.IndexOf("upgrade: websocket", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 string key = ExtractHeader(request, "sec-websocket-key");
-                if (key == null) { client.Close(); return; }
+                if (key == null) { sock.Close(); return; }
 
                 string accept;
                 using (SHA1 sha = SHA1.Create())
                     accept = Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(key + WS_GUID)));
 
                 string resp = "HTTP/1.1 101 Switching Protocols\r\n" +
-                              "Upgrade: websocket\r\n" +
-                              "Connection: Upgrade\r\n" +
+                              "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
                               "Sec-WebSocket-Accept: " + accept + "\r\n\r\n";
-                byte[] rb = Encoding.ASCII.GetBytes(resp);
-                stream.Write(rb, 0, rb.Length);
-                lock (_lock) { _clients.Add(client); }
+                sock.Send(Encoding.ASCII.GetBytes(resp));
+                lock (_lock) { _clients.Add(sock); }
+                Plugin.Log?.LogInfo("panel connected (" + ClientCount + " total)");
             }
             else
             {
@@ -94,13 +109,10 @@ namespace GlassPanel
                 head.Append("HTTP/1.1 200 OK\r\n");
                 head.Append("Content-Type: text/html; charset=utf-8\r\n");
                 head.Append("Content-Length: ").Append(_pageBytes.Length).Append("\r\n");
-                head.Append("Cache-Control: no-cache\r\n");
-                head.Append("Connection: close\r\n\r\n");
-                byte[] hb = Encoding.ASCII.GetBytes(head.ToString());
-                stream.Write(hb, 0, hb.Length);
-                stream.Write(_pageBytes, 0, _pageBytes.Length);
-                stream.Flush();
-                client.Close();
+                head.Append("Cache-Control: no-cache\r\nConnection: close\r\n\r\n");
+                sock.Send(Encoding.ASCII.GetBytes(head.ToString()));
+                sock.Send(_pageBytes);
+                sock.Close();
             }
         }
 
@@ -139,8 +151,8 @@ namespace GlassPanel
             {
                 for (int i = _clients.Count - 1; i >= 0; i--)
                 {
-                    TcpClient c = _clients[i];
-                    try { c.GetStream().Write(frame, 0, frame.Length); }
+                    Socket c = _clients[i];
+                    try { c.Send(frame); }
                     catch { try { c.Close(); } catch { } _clients.RemoveAt(i); }
                 }
             }

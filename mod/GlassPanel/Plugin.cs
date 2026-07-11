@@ -1,13 +1,14 @@
 using System.IO;
 using System.Reflection;
 using BepInEx;
-using BepInEx.Configuration;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using UnityEngine;
 
 namespace GlassPanel
 {
     [BepInPlugin(GUID, "NO Glass Panel", "0.1.0")]
+    [BepInProcess("NuclearOption.exe")]
     public class Plugin : BaseUnityPlugin
     {
         public const string GUID = "ai.fireballz.noglasspanel";
@@ -16,31 +17,42 @@ namespace GlassPanel
 
         private MiniServer _server;
         private TelemetryReader _reader;
-        private ConfigEntry<int> _port;
-        private ConfigEntry<float> _hz;
         private float _accum;
+        private float _interval = 1f / 30f;
 
         private void Awake()
         {
             Log = Logger;
-            _port = Config.Bind("Server", "Port", 8787,
-                "TCP port serving the panel page (HTTP) and the live feed (WebSocket) on the same port.");
-            _hz = Config.Bind("Server", "UpdateHz", 30f,
-                "Telemetry frames per second pushed to connected panels.");
+
+            // Nuclear Option destroys BepInEx's manager object during startup, which would
+            // take this plugin (and its server) with it. Force-hide + keep it alive — the
+            // same workaround NOBlackBox uses to survive in this game.
+            GameObject manager = Chainloader.ManagerObject;
+            if (manager != null)
+            {
+                manager.hideFlags = HideFlags.HideAndDontSave;
+                DontDestroyOnLoad(manager);
+            }
+
+            int port = Config.Bind("Server", "Port", 8787,
+                "TCP port serving the panel page (HTTP) and the live feed (WebSocket) on the same port.").Value;
+            float hz = Config.Bind("Server", "UpdateHz", 30f,
+                "Telemetry frames per second pushed to connected panels.").Value;
+            _interval = 1f / Mathf.Max(1f, hz);
 
             _reader = new TelemetryReader();
-            _server = new MiniServer(_port.Value, LoadPanelHtml());
+            _server = new MiniServer(port, LoadPanelHtml());
             _server.Start();
 
-            Log.LogInfo($"Glass Panel up. On the laptop, open  http://<this-pc-ip>:{_port.Value}");
+            Log.LogInfo($"Glass Panel up. On the laptop, open  http://<this-pc-ip>:{port}");
         }
 
         private void Update()
         {
             if (_server == null) return;
+
             _accum += Time.unscaledDeltaTime;
-            float interval = 1f / Mathf.Max(1f, _hz.Value);
-            if (_accum < interval) return;
+            if (_accum < _interval) return;
             _accum = 0f;
 
             if (_server.ClientCount == 0) return;
