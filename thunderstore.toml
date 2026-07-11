@@ -28,4 +28,4 @@ repository = "https://thunderstore.io"
 communities = ["nuclear-option"]
 
 [publish.categories]
-nuclear-option = []
+nuclear-option = ["mods", "tools"]
