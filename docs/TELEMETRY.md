@@ -77,7 +77,7 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 | `contacts[].spd` | number (kn) | Contact speed. |
 | `contacts[].name` | string | Contact type/callsign. |
 | `contacts[].locked` | boolean | Drives the locked-target data block. |
-| `rwr` | array | `[{ brg:deg, band:string, lock:0|1|2 }]` — radar warning receiver. `lock`: 0 search, 1 track, 2 launch. Empty array = no threats; **absent = RWR standby**. |
+| `rwr` | array | `[{ brg:deg, band:string, lock:0|1|2 }]` — radar warning receiver. `lock`: 0 search, 1 track, 2 launch. Empty array = no threats; **absent = RWR standby**. *(v1.2.0: fed from the game's `MissileWarning` system — incoming missiles as `band:"M"`, `lock:2`. Radar-track emitters are a later add.)* |
 | `damage` | object | `{ hull:0..1, sections:{ nose, lwing, rwing, tail, engine : 0..1 } }` (1 = healthy). The damage silhouette only appears when something is < 1. |
 | `chat` | array | `[{ who:string, msg:string }]` — recent in-game messages. Absent = comms standby. |
 

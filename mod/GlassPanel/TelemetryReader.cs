@@ -69,6 +69,8 @@ namespace GlassPanel
             p.Add(Int("chaffMax", chaffMax <= 0 ? 1 : chaffMax));
 
             p.Add("\"contacts\":[" + BuildContacts(ac) + "]");
+            p.Add("\"rwr\":[" + BuildRWR(ac) + "]");
+            p.Add(BuildDamage(ac));
 
             return "{" + string.Join(",", p.ToArray()) + "}";
         }
@@ -131,6 +133,39 @@ namespace GlassPanel
                 return string.Join(",", items.ToArray());
             }
             catch { return ""; }
+        }
+
+        // Incoming-missile warnings from the game's MissileWarning system -> RWR launch threats.
+        private static string BuildRWR(Aircraft ac)
+        {
+            try
+            {
+                MissileWarning mw = ac.GetMissileWarningSystem();
+                if (mw == null || mw.knownMissiles == null) return "";
+                var items = new List<string>();
+                foreach (Missile m in mw.knownMissiles)
+                {
+                    if (m == null) continue;
+                    Vector3 d = m.transform.position - ac.transform.position;
+                    float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
+                    items.Add("{" + Num("brg", brg) + "," + Str("band", "M") + "," + Int("lock", 2) + "}");
+                }
+                return string.Join(",", items.ToArray());
+            }
+            catch { return ""; }
+        }
+
+        // Damage integrity from the part-damage tracker (fraction of parts blown off).
+        private static string BuildDamage(Aircraft ac)
+        {
+            float hull = 1f;
+            try
+            {
+                if (ac.partDamageTracker != null)
+                    hull = 1f - ac.partDamageTracker.GetDetachedRatio();
+            }
+            catch { }
+            return "\"damage\":{" + Num("hull", hull) + "}";
         }
 
         // ── tiny JSON helpers, invariant culture ──
