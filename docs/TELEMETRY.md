@@ -79,7 +79,9 @@ The Tomcat-style panel adds these. All optional — a module shows a **standby**
 | `contacts[].locked` | boolean | Drives the locked-target data block. |
 | `rwr` | array | `[{ brg:deg, band:string, lock:0|1|2 }]` — radar warning receiver. `lock`: 0 search, 1 track, 2 launch. Empty array = no threats; **absent = RWR standby**. *(v1.2.0: fed from the game's `MissileWarning` system — incoming missiles as `band:"M"`, `lock:2`. Radar-track emitters are a later add.)* |
 | `damage` | object | `{ hull:0..1, sections:{ nose, lwing, rwing, tail, engine : 0..1 } }` (1 = healthy). The damage silhouette only appears when something is < 1. |
-| `chat` | array | `[{ who:string, msg:string }]` — recent in-game messages. Absent = comms standby. |
+| `chat` | array | `[{ who:string, msg:string }]` — recent in-game messages (v1.3.0: captured live from `ChatManager`). Absent = comms standby. |
+
+**Panel → game (v1.3.0, bi-directional):** the panel can also *send*. Over the same WebSocket it posts `{"t":"chat","all":true,"text":"..."}`; the mod drains it on the main thread and calls `ChatManager.SendChatMessage(text, allChat)`. That's how you type into game chat from the laptop/tablet.
 
 The `meatball` / AoA indexer needs no field — it's derived on the panel from `vs` + `tas` (flight-path angle vs a ~3.5° glideslope) and `aoa` (on-speed indexer), so it works for any airframe.
 

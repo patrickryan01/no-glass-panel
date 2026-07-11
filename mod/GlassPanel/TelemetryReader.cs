@@ -71,6 +71,7 @@ namespace GlassPanel
             p.Add("\"contacts\":[" + BuildContacts(ac) + "]");
             p.Add("\"rwr\":[" + BuildRWR(ac) + "]");
             p.Add(BuildDamage(ac));
+            p.Add("\"chat\":[" + ChatBridge.BuildJson() + "]");
 
             return "{" + string.Join(",", p.ToArray()) + "}";
         }

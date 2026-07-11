@@ -25,6 +25,9 @@ namespace GlassPanel
         private Thread _acceptThread;
         private volatile bool _running;
 
+        // Raised (off-thread) when a connected panel sends us a message.
+        public System.Action<string> OnMessage;
+
         public MiniServer(int port, string pageHtml)
         {
             _port = port;
@@ -102,6 +105,7 @@ namespace GlassPanel
                 sock.Send(Encoding.ASCII.GetBytes(resp));
                 lock (_lock) { _clients.Add(sock); }
                 Plugin.Log?.LogInfo("panel connected (" + ClientCount + " total)");
+                new Thread(() => ReadLoop(sock)) { IsBackground = true, Name = "GlassPanel-read" }.Start();
             }
             else
             {
@@ -156,6 +160,41 @@ namespace GlassPanel
                     catch { try { c.Close(); } catch { } _clients.RemoveAt(i); }
                 }
             }
+        }
+
+        // Read masked client->server frames (RFC 6455) and surface text payloads.
+        private void ReadLoop(Socket sock)
+        {
+            try
+            {
+                NetworkStream ns = new NetworkStream(sock, false);
+                while (_running && sock.Connected)
+                {
+                    int b0 = ns.ReadByte(); if (b0 < 0) break;
+                    int b1 = ns.ReadByte(); if (b1 < 0) break;
+                    int opcode = b0 & 0x0F;
+                    bool masked = (b1 & 0x80) != 0;
+                    long len = b1 & 0x7F;
+                    if (len == 126) { len = (ReadN(ns) << 8) | ReadN(ns); }
+                    else if (len == 127) { len = 0; for (int i = 0; i < 8; i++) len = (len << 8) | (long)ReadN(ns); }
+                    if (len < 0 || len > 65536) break;
+                    byte[] mask = new byte[4]; if (masked) ReadFull(ns, mask, 4);
+                    byte[] payload = new byte[len]; ReadFull(ns, payload, (int)len);
+                    if (masked) for (int i = 0; i < len; i++) payload[i] ^= mask[i & 3];
+                    if (opcode == 0x8) break;                       // close
+                    if (opcode == 0x1 && OnMessage != null)         // text
+                        OnMessage(Encoding.UTF8.GetString(payload));
+                }
+            }
+            catch { }
+            finally { lock (_lock) { _clients.Remove(sock); } try { sock.Close(); } catch { } }
+        }
+
+        private static int ReadN(NetworkStream ns) { int b = ns.ReadByte(); if (b < 0) throw new IOException(); return b; }
+        private static void ReadFull(NetworkStream ns, byte[] buf, int count)
+        {
+            int off = 0;
+            while (off < count) { int n = ns.Read(buf, off, count - off); if (n <= 0) throw new IOException(); off += n; }
         }
 
         // Single unmasked server->client text frame (RFC 6455).

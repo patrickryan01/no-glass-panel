@@ -84,6 +84,12 @@
   .comms .log{display:flex;gap:22px;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;flex:1}
   .comms .log b{color:var(--nav);font-weight:600}
   .comms .log .empty{color:#2a4a48;font-style:italic}
+  .comms input{flex:0 0 auto;width:min(38vw,300px);background:#04080a;border:1px solid var(--hair);border-radius:6px;
+    color:var(--ink);font-family:var(--mono);font-size:12px;padding:5px 9px;outline:none}
+  .comms input:focus{border-color:var(--nav)}
+  .comms button{flex:0 0 auto;background:#0c2016;border:1px solid #1c4a30;color:var(--green);font-family:var(--sans);
+    font-size:10px;font-weight:700;letter-spacing:.12em;padding:6px 13px;border-radius:6px;cursor:pointer}
+  .comms button:active{background:#123024}
 
   #damage{position:fixed;right:12px;bottom:52px;width:190px;height:140px;z-index:20;display:none;
     border:1px solid var(--hair);border-radius:10px;background:#070f12}
@@ -139,7 +145,7 @@
     </div>
   </div>
 
-  <div class="comms"><span class="lbl">Comms</span><div class="log" id="commsLog"><span class="empty">— standby —</span></div></div>
+  <div class="comms"><span class="lbl">Comms</span><div class="log" id="commsLog"><span class="empty">— standby —</span></div><input id="chatIn" placeholder="message → game chat…" autocomplete="off" maxlength="200"><button id="chatSend">SEND</button></div>
 </div>
 
 <canvas id="damage"></canvas>
@@ -156,7 +162,7 @@ const S={live:false,ias:250,tas:265,mach:.4,alt:6000,agl:5820,vs:0,hdg:90,pitch:
 function applyTelemetry(t){Object.assign(S,t);if(t.inputs)S.inputs=Object.assign(S.inputs,t.inputs);
   if(t.rwr!==undefined)S._hasRWR=true;if(t.chat!==undefined)S._hasChat=true;S.live=true;setConn(true);}
 function setConn(l){const p=document.getElementById('conn');p.className='pill '+(l?'live':'sim');document.getElementById('connTxt').textContent=l?'LIVE':'SIM';}
-function connectLive(u){try{const ws=new WebSocket(u);ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);};
+function connectLive(u){try{const ws=new WebSocket(u);S._ws=ws;ws.onopen=()=>setConn(true);ws.onclose=()=>{S.live=false;setConn(false);};
   ws.onmessage=e=>{try{applyTelemetry(JSON.parse(e.data));}catch(_){}};}catch(_){}}
 
 /* sim */
@@ -317,6 +323,13 @@ function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!S.live)si
 requestAnimationFrame(loop);
 
 if(location.protocol==='http:'||location.protocol==='https:'){connectLive((location.protocol==='https:'?'wss://':'ws://')+location.host);}
+
+// bi-directional comms: type on this device -> game chat
+function sendChat(){const el=document.getElementById('chatIn');const t=(el.value||'').trim();if(!t)return;
+  if(S._ws&&S._ws.readyState===1){S._ws.send(JSON.stringify({t:'chat',all:true,text:t}));el.value='';}}
+(function(){const el=document.getElementById('chatIn');if(!el)return;
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendChat();}});
+  const b=document.getElementById('chatSend');if(b)b.addEventListener('click',sendChat);})();
 </script>
 </body>
 </html>
