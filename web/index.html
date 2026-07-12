@@ -391,7 +391,9 @@ function esc(s){return(''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&a
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.live&&now-S._liveT>1200){S.live=false;setConn(false);} /* feed went stale (mission ended / menu) -> fall back to demo */
   if(!S.live)sim(dt);trackVc(dt);
-  hud();map();radar();rwr();machDial();damage();dom();requestAnimationFrame(loop);}
+  try{hud();map();radar();rwr();machDial();damage();dom();}
+  catch(e){if(!S._errLogged){S._errLogged=1;console.error('panel render error (real telemetry):',e);}}
+  requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 
 if(location.protocol==='http:'||location.protocol==='https:'){connectLive((location.protocol==='https:'?'wss://':'ws://')+location.host);}

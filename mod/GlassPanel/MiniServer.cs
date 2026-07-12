@@ -156,8 +156,25 @@ namespace GlassPanel
                 for (int i = _clients.Count - 1; i >= 0; i--)
                 {
                     Socket c = _clients[i];
-                    try { c.Send(frame); }
-                    catch { try { c.Close(); } catch { } _clients.RemoveAt(i); }
+                    try
+                    {
+                        // Socket.Send can write fewer bytes than requested — loop until the
+                        // whole frame is on the wire, or the WebSocket framing desyncs and
+                        // every client rejects the stream.
+                        int off = 0;
+                        while (off < frame.Length)
+                        {
+                            int n = c.Send(frame, off, frame.Length - off, SocketFlags.None);
+                            if (n <= 0) throw new SocketException((int)SocketError.ConnectionReset);
+                            off += n;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Log?.LogWarning("broadcast send failed, dropping client: " + ex.Message);
+                        try { c.Close(); } catch { }
+                        _clients.RemoveAt(i);
+                    }
                 }
             }
         }
@@ -168,6 +185,11 @@ namespace GlassPanel
             try
             {
                 NetworkStream ns = new NetworkStream(sock, false);
+                // ReadHeaders set a 5s receive timeout on this socket (NetworkStream.ReadTimeout
+                // maps to Socket.ReceiveTimeout and persists). A connected panel sends nothing
+                // until you type chat, so without clearing this the read times out after 5s and
+                // the connection gets dropped every 5 seconds. 0 = block indefinitely.
+                sock.ReceiveTimeout = 0;
                 while (_running && sock.Connected)
                 {
                     int b0 = ns.ReadByte(); if (b0 < 0) break;

@@ -16,10 +16,32 @@ namespace GlassPanel
         private const float MS_TO_FTMIN = 196.8504f;
         private const float RAD_TO_DEG = 57.29578f;
 
+        // The local player's own aircraft. GameManager.GetLocalAircraft relies on the
+        // networking _localPlayer being set (Player.OnStartLocalPlayer), which does not
+        // happen in single-player / host sessions — so it returns null even while you're
+        // flying. CombatHUD.aircraft is set whenever the local player is in a cockpit
+        // (Aircraft start -> CombatHUD.SetAircraft) and cleared on exit; it's what the
+        // game itself uses to identify the local jet (SceneSingleton<CombatHUD>.i.aircraft).
+        private static Aircraft ResolveLocalAircraft()
+        {
+            CombatHUD hud = SceneSingleton<CombatHUD>.i;
+            if (hud != null && hud.aircraft != null) return hud.aircraft;
+            if (GameManager.GetLocalAircraft(out Aircraft ac) && ac != null) return ac;
+            // Single-player / host: the networking "local player" is never set, so the two
+            // paths above stay null. The player is still in the registry — read its aircraft.
+            foreach (var kv in UnitRegistry.playerLookup)
+            {
+                var pl = kv.Value;
+                if (pl != null && pl.Aircraft != null) return pl.Aircraft;
+            }
+            return null;
+        }
+
         // Returns a JSON frame, or null when there is no local aircraft (menu/loading).
         public string BuildFrame()
         {
-            if (!GameManager.GetLocalAircraft(out Aircraft ac) || ac == null)
+            Aircraft ac = ResolveLocalAircraft();
+            if (ac == null)
                 return null;
 
             Transform t = ac.transform;

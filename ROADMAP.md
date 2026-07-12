@@ -4,7 +4,7 @@ The plan, phased. Every phase has a **Definition of Done** so "done" means done,
 
 Guiding rule for the whole thing: **no guessing at game internals.** Anything that reads Nuclear Option's state gets verified against the actual compiled assembly and cross-checked with a known-good reference ([NOBlackBox](https://github.com/KopterBuzz/NOBlackBox)) before it ships. Real code or no code.
 
-**Status:** all five phases done. It's on [Thunderstore](https://thunderstore.io/c/nuclear-option/p/RyanEngineering/GlassPanel/) at **v1.8.1**, in beta, and it flies. Everything past Phase 5 is [where it went after shipping](#-after-shipping--v11--v18).
+**Status (2026-07-12):** the mod-side pipeline reads the game and streams verified telemetry, but the panel does **not** yet display live data end-to-end, and the Thunderstore submission was **rejected** (not listed, not installable). The phase checkboxes below reflect what was *built*, not what's confirmed working in the live loop — see [.claude/workflows/glass-panel-status.md](.claude/workflows/glass-panel-status.md) for the honest current state. Earlier "shipped / it flies" claims were premature.
 
 ---
 
