@@ -17,6 +17,7 @@ namespace GlassPanel
         private const string WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
         private readonly int _port;
+        private readonly IPAddress _bindAddress;
         private readonly byte[] _pageBytes;
         private readonly List<Socket> _clients = new List<Socket>();
         private readonly object _lock = new object();
@@ -28,9 +29,10 @@ namespace GlassPanel
         // Raised (off-thread) when a connected panel sends us a message.
         public System.Action<string> OnMessage;
 
-        public MiniServer(int port, string pageHtml)
+        public MiniServer(int port, IPAddress bindAddress, string pageHtml)
         {
             _port = port;
+            _bindAddress = bindAddress ?? IPAddress.Loopback;
             _pageBytes = Encoding.UTF8.GetBytes(pageHtml ?? "");
         }
 
@@ -41,7 +43,7 @@ namespace GlassPanel
                 _running = true;
                 _listen = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 _listen.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                _listen.Bind(new IPEndPoint(IPAddress.Any, _port));
+                _listen.Bind(new IPEndPoint(_bindAddress, _port));
                 _listen.Listen(16);
                 Plugin.Log?.LogInfo("MiniServer LISTENING on " + _listen.LocalEndPoint);
                 _acceptThread = new Thread(AcceptLoop) { IsBackground = true, Name = "GlassPanel-accept" };
@@ -148,19 +150,18 @@ namespace GlassPanel
             return null;
         }
 
+        private int _broadcastCount;
         public void Broadcast(string message)
         {
             byte[] frame = EncodeTextFrame(message);
             lock (_lock)
             {
+                _broadcastCount++;
                 for (int i = _clients.Count - 1; i >= 0; i--)
                 {
                     Socket c = _clients[i];
                     try
                     {
-                        // Socket.Send can write fewer bytes than requested — loop until the
-                        // whole frame is on the wire, or the WebSocket framing desyncs and
-                        // every client rejects the stream.
                         int off = 0;
                         while (off < frame.Length)
                         {
@@ -182,6 +183,7 @@ namespace GlassPanel
         // Read masked client->server frames (RFC 6455) and surface text payloads.
         private void ReadLoop(Socket sock)
         {
+            string exitReason = "unknown";
             try
             {
                 NetworkStream ns = new NetworkStream(sock, false);
@@ -190,26 +192,42 @@ namespace GlassPanel
                 // until you type chat, so without clearing this the read times out after 5s and
                 // the connection gets dropped every 5 seconds. 0 = block indefinitely.
                 sock.ReceiveTimeout = 0;
+                Plugin.Log?.LogInfo($"[MiniServer] ReadLoop start, Connected={sock.Connected}");
                 while (_running && sock.Connected)
                 {
-                    int b0 = ns.ReadByte(); if (b0 < 0) break;
-                    int b1 = ns.ReadByte(); if (b1 < 0) break;
+                    int b0 = ns.ReadByte(); if (b0 < 0) { exitReason = "b0<0 (stream end)"; break; }
+                    int b1 = ns.ReadByte(); if (b1 < 0) { exitReason = "b1<0 (stream end)"; break; }
                     int opcode = b0 & 0x0F;
                     bool masked = (b1 & 0x80) != 0;
                     long len = b1 & 0x7F;
                     if (len == 126) { len = (ReadN(ns) << 8) | ReadN(ns); }
                     else if (len == 127) { len = 0; for (int i = 0; i < 8; i++) len = (len << 8) | (long)ReadN(ns); }
-                    if (len < 0 || len > 65536) break;
+                    if (len < 0 || len > 65536) { exitReason = "bad len="+len; break; }
                     byte[] mask = new byte[4]; if (masked) ReadFull(ns, mask, 4);
                     byte[] payload = new byte[len]; ReadFull(ns, payload, (int)len);
                     if (masked) for (int i = 0; i < len; i++) payload[i] ^= mask[i & 3];
-                    if (opcode == 0x8) break;                       // close
-                    if (opcode == 0x1 && OnMessage != null)         // text
+                    if (opcode == 0x8) { int closeCode = (len >= 2) ? (payload[0] << 8) | payload[1] : 0; exitReason = "close frame code=" + closeCode; break; }   // close
+                    if (opcode == 0x9)                                           // ping → pong
+                    {
+                        byte[] pong = new byte[2 + payload.Length];
+                        pong[0] = 0x8A; // FIN + pong opcode
+                        pong[1] = (byte)payload.Length;
+                        Array.Copy(payload, 0, pong, 2, payload.Length);
+                        try { sock.Send(pong); } catch { exitReason = "pong send failed"; break; }
+                    }
+                    if (opcode == 0x1 && OnMessage != null)                      // text
                         OnMessage(Encoding.UTF8.GetString(payload));
                 }
+                if (!_running) exitReason = "server stopped";
+                else if (!sock.Connected) exitReason = "sock.Connected=false";
             }
-            catch { }
-            finally { lock (_lock) { _clients.Remove(sock); } try { sock.Close(); } catch { } }
+            catch (Exception ex) { exitReason = "exception: " + ex.Message; }
+            finally
+            {
+                Plugin.Log?.LogWarning($"[MiniServer] ReadLoop exit: {exitReason}");
+                lock (_lock) { _clients.Remove(sock); }
+                try { sock.Close(); } catch { }
+            }
         }
 
         private static int ReadN(NetworkStream ns) { int b = ns.ReadByte(); if (b < 0) throw new IOException(); return b; }

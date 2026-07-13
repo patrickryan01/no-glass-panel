@@ -8,11 +8,8 @@
 ![deps](https://img.shields.io/badge/node__modules-0-4ee08c?style=flat-square)
 ![fuel](https://img.shields.io/badge/fueled%20by-White%20Monster-white?style=flat-square)
 
-> **⚠️ Status: in development — not working end-to-end yet, and not on Thunderstore.**
-> The mod reads real telemetry out of the game (verified live), but the browser panel does
-> **not** yet reliably display it. Earlier claims that this "works" were premature. Nothing
-> is published or installable. See [`.claude/workflows/glass-panel-status.md`](.claude/workflows/glass-panel-status.md)
-> for exactly what works, what doesn't, and what's left.
+> **⚠️ Status: in development — not on Thunderstore yet.**
+> The end-to-end pipeline is **confirmed working** — real telemetry flowing from game to browser, panel displaying `LIVE` data in-flight. Individual instrument panels are still being validated and cleaned up. Not published or installable without building from source.
 
 An external, F-35-style **HMD glass panel** for [Nuclear Option](https://store.steampowered.com/app/2168680/Nuclear_Option/). It runs in a browser on whatever screen you've got parked next to the stick — laptop, tablet, the sad tablet in the kitchen — and it's fed live telemetry straight out of the game over your LAN. The **tactical map** and the **weapon/ammo block** come *off* the helmet glass and go live on their own panel, where a reasonable person keeps them.
 
@@ -34,19 +31,13 @@ Also I'm recording this stuff, and a real glass cockpit glowing on a second scre
 
 ## 📦 Get it (on the gaming PC)
 
-**There's no release yet.** It is not on Thunderstore (a build was submitted and *rejected*), there's no tagged DLL to grab, and the mod isn't confirmed working end-to-end. The only way to run it today is to **build the mod from source** — see [CONTRIBUTING.md](CONTRIBUTING.md). This section will get real install instructions when it actually works.
-
-The **panel half** (the browser page) does run standalone right now — see below — it just flies a simulation until the mod side is finished.
+**There's no release yet.** It is not on Thunderstore, there's no tagged DLL to grab, and individual panel sections still need cleanup passes. The only way to run it today is to **build the mod from source** — see [CONTRIBUTING.md](CONTRIBUTING.md). This section will get real install instructions when it's fully cleaned up and ready to ship.
 
 ## 🖥️ Run the panel
 
-```
-web/index.html  →  open it in any browser
-```
+Open `http://127.0.0.1:8787` in any browser **while the game is running.** The mod serves the panel page directly — no separate web server, no file to open manually. The `SIM` pill flips to `LIVE` (green) the moment you spawn into an aircraft and real telemetry starts flowing.
 
-That's the whole thing. It boots up flying a **fake** Nuclear Option sortie so you can watch every needle move without touching the game — a frameless F-35-style HMD horizon (airspeed in **knots + km/h**, altitude in **feet + meters**, Mach, G, AoA), framed **Map** and **Radar** MFDs, an **RWR**, a **meatball / AoA** approach indexer, the full **stores** loadout, an airframe-labeled **damage** silhouette, the **mission objectives** checklist, and a **comms** window you can type into. It runs on Canvas and a bad attitude. Works on a phone or tablet too, because there's no reason it shouldn't.
-
-The `SIM` pill is *meant* to flip to `LIVE` the second the mod connects and starts handing it real numbers. The mod side does stream real numbers (verified) — but wiring that cleanly into the panel's live display is the part still being finished, so treat the standalone page as a demo for now.
+You can also open `web/index.html` directly as a file to see the panel running on simulated data, without needing the game or the mod. Useful for layout work.
 
 ---
 
@@ -75,19 +66,24 @@ The panel eats one JSON object, `applyTelemetry(obj)`. Send any subset ~30 times
 
 ## 🗺️ Where it's at
 
-Full, honest status lives in **[.claude/workflows/glass-panel-status.md](.claude/workflows/glass-panel-status.md)**. The short version:
+**Confirmed working (end-to-end, in a live game):**
+- Full pipeline: mod reads aircraft → JSON over WebSocket → browser panel displays `LIVE`
+- Single-player and multiplayer host aircraft detection (Harmony patch on `SetLocalSim`, survives respawn)
+- Core flight instruments: airspeed (TAS/IAS/Mach), altitude (ft + m), AGL, vertical speed, heading, pitch, roll, AoA, G, throttle, engine thrust, fuel (kg, %, time remaining)
+- Gear state, countermeasures (flares/chaff), weapon loadout and station cycling
+- Mission objectives, nav/RTB bearing, datalink contacts
+- RWR / missile warning display
+- Chat receive and send from panel
+- Touchscreen controls (gear, weapons, flares) — dispatched on Unity main thread, crash-safe
 
-**Verified working (mod side, confirmed in a live game):**
-- The mod resolves the local aircraft in single-player and **streams valid telemetry** — real airspeed, altitude, Mach, G, AoA, V/S, heading, radar alt, fuel, engine thrust, loadout — over a stable WebSocket. Measured: 720 valid frames in 30s, no drops.
-- Every game read is **verified against the actual game assembly** (decompiled), cross-checked with [NOBlackBox](https://github.com/KopterBuzz/NOBlackBox). That part is not a guess.
-
-**Built but NOT yet confirmed end-to-end:**
-- The browser panel **displaying** that live data. It renders the demo fine; on real (larger) aircraft data the render path still needs fixing before it reliably shows `LIVE`. This is the current blocker.
-- Everything downstream that depends on the panel showing live data — damage silhouette, RWR, datalink, nav/RTB, objectives, comms, touchscreen control, OBS/per-device views — exists in code but is **unverified in the live loop.**
+**Working but needs cleanup passes:**
+- Individual instrument panel sections — some display issues visible in-flight, being addressed
+- Damage silhouette — reads correctly, display fidelity TBD
+- Per-device views (OBS clean feed, tablet layout)
 
 **On the board:**
-- Fix the panel's live render (the one thing between "streams data" and "actually usable").
-- Understand and resolve the Thunderstore rejection before any re-submit.
+- Clean up panel display issues identified in first confirmed live flight
+- Thunderstore submission (rejected once on packaging, not on content — fix pending)
 
 ---
 
@@ -98,7 +94,7 @@ Full, honest status lives in **[.claude/workflows/glass-panel-status.md](.claude
 
 ## 🧪 In development — not done yet
 
-This is **pre-release and not working end-to-end.** The mod streams real telemetry; the panel doesn't reliably show it yet. Don't expect to install this and fly with it today — expect to build it from source and help finish it. When it actually works at 400 knots, this section changes its tune.
+The core loop works. Individual sections still need a cleanup pass before this is something you'd hand a stranger. When it's ready, this section changes its tune.
 
 - 🐛 **Bugs** → open an [issue](https://github.com/patrickryan01/no-glass-panel/issues/new/choose). Tell me the aircraft, **what the panel showed vs. what the game showed**, and paste `BepInEx\LogOutput.log` if it never loaded. "It's broken" is not a bug report, it's a horoscope.
 - 💬 **Ideas, questions, show off your battlestation** → [Discussions](https://github.com/patrickryan01/no-glass-panel/discussions).

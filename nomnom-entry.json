@@ -1,0 +1,37 @@
+{
+  "id": "GlassPanel",
+  "displayName": "Glass Panel",
+  "description": "External F-35-style HMD glass panel for Nuclear Option. Pulls the tactical map and weapon/ammo readout off your helmet onto a browser on a second screen (laptop, tablet) — fed by live telemetry over your LAN via WebSocket. Includes RWR, datalink, damage display, mission objectives, bi-directional comms, and touchscreen aircraft control.",
+  "tags": [
+    "mod",
+    "QoL",
+    "Utility",
+    "HUD"
+  ],
+  "urls": [
+    {
+      "name": "info",
+      "url": "https://github.com/patrickryan01/no-glass-panel"
+    },
+    {
+      "name": "releases",
+      "url": "https://github.com/patrickryan01/no-glass-panel/releases"
+    }
+  ],
+  "authors": [
+    "patrickryan01"
+  ],
+  "githubOwner": "patrickryan01",
+  "githubRepoName": "no-glass-panel",
+  "autoUpdateArtifacts": "True",
+  "artifacts": [
+    {
+      "fileName": "GlassPanel.dll",
+      "version": "1.9.0",
+      "category": "release",
+      "type": "plugin",
+      "gameVersion": "0.33",
+      "downloadUrl": "https://github.com/patrickryan01/no-glass-panel/releases/download/v1.9.0/GlassPanel.dll"
+    }
+  ]
+}

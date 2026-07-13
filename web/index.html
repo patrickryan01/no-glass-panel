@@ -365,17 +365,17 @@ function dom(){S.peakG=Math.max(S.peakG,S.g||0);
   document.getElementById('thr').textContent=Math.round((S.throttle||0)*100)+'%';
   document.getElementById('eng').textContent=(S.engine||0).toFixed(0)+' kN';
   const lk=(S.contacts||[]).find(c=>c.locked);const tg=document.getElementById('tgt');
-  tg.textContent=lk?((lk.rng/1000).toFixed(1)+'km '+(S.vc?((S.vc>0?'+':'')+Math.round(S.vc)):'')):'—';tg.className='v'+(lk?' amber':'');
+  tg.textContent=lk?(((lk.rng||0)/1000).toFixed(1)+'km '+(S.vc?((S.vc>0?'+':'')+Math.round(S.vc)):'')):'—';tg.className='v'+(lk?' amber':'');
   document.getElementById('fuel').textContent='FUEL '+fmt(S.fuelKg)+'kg';
-  document.getElementById('rdTgt').textContent=lk?((lk.name||'TGT')+' '+(lk.rng/1000).toFixed(1)+'km'+(lk.alt!=null?' '+Math.round(lk.alt*3.28)+'ft':'')+(S.vc?' Vc'+(S.vc>0?'+':'')+Math.round(S.vc):'')):'—';
+  document.getElementById('rdTgt').textContent=lk?((lk.name||'TGT')+' '+((lk.rng||0)/1000).toFixed(1)+'km'+(lk.alt!=null?' '+Math.round(lk.alt*3.28)+'ft':'')+(S.vc?' Vc'+(S.vc>0?'+':'')+Math.round(S.vc):'')):'—';
   document.getElementById('rdTgt').className='rv'+(lk?' amber':'');
   document.getElementById('rdCon').textContent=(S.contacts||[]).length;
   const thr=document.getElementById('rdThr');thr.textContent=(S.rwr||[]).length;thr.className='rv'+((S.rwr||[]).some(r=>r.lock>=2)?' red':(S.rwr||[]).length?' amber':'');
   document.getElementById('rdDl').textContent=(S.datalink||[]).length;
   document.getElementById('rdRtb').textContent=S.nav?((S.nav.name||'BASE')+' '+(S.nav.rng/1000).toFixed(0)+'km '+(''+Math.round(S.nav.brg)).padStart(3,'0')):'—';
   const w=S.weapons&&S.weapons[S.weaponIndex]||{name:'—',ammo:0,unit:''};
-  document.getElementById('wN').textContent=w.name;document.getElementById('wA').textContent=w.ammo;document.getElementById('wU').textContent=w.unit||'';
-  document.getElementById('wL').innerHTML=(S.weapons||[]).map((x,i)=>`<div class="wr ${i===S.weaponIndex?'sel':''}"><span>${x.name}</span><b>${x.ammo} ${x.unit||''}</b></div>`).join('');
+  document.getElementById('wN').textContent=w.name||'—';document.getElementById('wA').textContent=w.ammo??0;document.getElementById('wU').textContent=w.unit||'';
+  document.getElementById('wL').innerHTML=(S.weapons||[]).map((x,i)=>`<div class="wr ${i===S.weaponIndex?'sel':''}"><span>${x.name||'—'}</span><b>${x.ammo??0} ${x.unit||''}</b></div>`).join('');
   document.getElementById('flN').textContent=S.flares;document.getElementById('chN').textContent=S.chaff;
   document.getElementById('flB').style.width=(100*S.flares/(S.flaresMax||1))+'%';document.getElementById('chB').style.width=(100*S.chaff/(S.chaffMax||1))+'%';
   document.getElementById('lc').classList.toggle('on',S.caution);document.getElementById('lw').classList.toggle('on',S.warning);
@@ -389,7 +389,7 @@ function dom(){S.peakG=Math.max(S.peakG,S.g||0);
 function esc(s){return(''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
 
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
-  if(S.live&&now-S._liveT>1200){S.live=false;setConn(false);} /* feed went stale (mission ended / menu) -> fall back to demo */
+  if(S.live&&now-S._liveT>5000){S.live=false;setConn(false);} /* feed went stale (mission ended / menu) -> fall back to demo */
   if(!S.live)sim(dt);trackVc(dt);
   try{hud();map();radar();rwr();machDial();damage();dom();}
   catch(e){if(!S._errLogged){S._errLogged=1;console.error('panel render error (real telemetry):',e);}}

@@ -11,24 +11,60 @@ namespace GlassPanel
     // member — see docs/GAME_SYMBOLS.md. No guessing.
     internal class TelemetryReader
     {
-        private const float MS_TO_KN = 1.943844f;
-        private const float M_TO_FT = 3.28084f;
+        private float _fuelMaxKg;
+        private const float MS_TO_KN  = 1.943844f;
+        private const float M_TO_FT   = 3.28084f;
         private const float MS_TO_FTMIN = 196.8504f;
-        private const float RAD_TO_DEG = 57.29578f;
+        private const float RAD_TO_DEG  = 57.29578f;
 
-        // The local player's own aircraft. GameManager.GetLocalAircraft relies on the
-        // networking _localPlayer being set (Player.OnStartLocalPlayer), which does not
-        // happen in single-player / host sessions — so it returns null even while you're
-        // flying. CombatHUD.aircraft is set whenever the local player is in a cockpit
-        // (Aircraft start -> CombatHUD.SetAircraft) and cleared on exit; it's what the
-        // game itself uses to identify the local jet (SceneSingleton<CombatHUD>.i.aircraft).
-        private static Aircraft ResolveLocalAircraft()
+        // CameraStateManager.followingUnit — PUBLIC field (verified line 4380 decompiled).
+        // Set for ANY camera mode (cockpit, external/orbit, chase). Works SP + MP.
+        // Source: NOXMFD uses GameManager.GetLocalAircraft which requires _localPlayer set
+        // (MP-only). CameraStateManager is always set when you have a unit to watch.
+        //
+        // FlightHud.aircraft — private, set only from CockpitCam.EnterState (line 2079).
+        // Null in external view. Keep as secondary.
+        private static readonly FieldInfo _flightHudAircraftField =
+            typeof(FlightHud).GetField("aircraft", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Set by the Harmony patch on Aircraft.SetupLocalPlayerAndUI — fires exactly
+        // once when the local player spawns into a jet. Most reliable path of all.
+        internal static Aircraft LocalAircraft;
+
+        // Four-path local aircraft resolver — ordered from most to least reliable.
+        internal static Aircraft ResolveLocalAircraft()
         {
-            CombatHUD hud = SceneSingleton<CombatHUD>.i;
-            if (hud != null && hud.aircraft != null) return hud.aircraft;
+            // 0. Harmony-captured — event-driven, set the instant local player spawns.
+            // Use Unity's implicit bool (not C# != null) to detect destroyed objects;
+            // a destroyed Aircraft's C# reference is non-null but its Unity handle is dead.
+            if (LocalAircraft != null)
+            {
+                if ((UnityEngine.Object)LocalAircraft) return LocalAircraft;
+                LocalAircraft = null; // stale — clear and fall through
+            }
+
+            // 1. CameraStateManager.followingUnit — public, any camera mode, SP + MP.
+            //    Verified: public Unit followingUnit (line 4380 Assembly-CSharp.decompiled.cs).
+            CameraStateManager cam = SceneSingleton<CameraStateManager>.i;
+            if (cam != null && cam.followingUnit is Aircraft camAc && camAc != null)
+                return camAc;
+
+            // 2. FlightHud.aircraft (private via reflection) — cockpit view only.
+            //    Set unconditionally in CockpitCam.EnterState line 2079 before the
+            //    GetLocalAircraft() guard, so it works in SP when the guard fails.
+            FlightHud fhud = SceneSingleton<FlightHud>.i;
+            if (fhud != null)
+            {
+                if (_flightHudAircraftField?.GetValue(fhud) is Aircraft fhAc && fhAc != null)
+                    return fhAc;
+            }
+
+            // 3. GameManager.GetLocalAircraft — MP / client path.
+            //    Requires _localPlayer set via OnStartLocalPlayer (network callback).
+            //    Verified same call used by NOXMFD TelemetryReader line 168.
             if (GameManager.GetLocalAircraft(out Aircraft ac) && ac != null) return ac;
-            // Single-player / host: the networking "local player" is never set, so the two
-            // paths above stay null. The player is still in the registry — read its aircraft.
+
+            // 4. playerLookup iteration — last resort SP/host fallback.
             foreach (var kv in UnitRegistry.playerLookup)
             {
                 var pl = kv.Value;
@@ -41,9 +77,9 @@ namespace GlassPanel
         public string BuildFrame()
         {
             Aircraft ac = ResolveLocalAircraft();
-            if (ac == null)
-                return null;
-
+            if (ac == null) return null;
+            try
+            {
             Transform t = ac.transform;
             Vector3 vel = (ac.cockpit != null && ac.cockpit.rb != null) ? ac.cockpit.rb.velocity : Vector3.zero;
             float speed = ac.speed; // m/s, true airspeed
@@ -83,7 +119,12 @@ namespace GlassPanel
             p.Add(Num("engine", EngineThrustKN(ac)));
             p.Add(Num("throttle", inp.throttle));
             p.Add(Bool("gear", ac.gearDeployed));
-            p.Add(Num("fuelKg", ac.GetFuelQuantity()));
+            float fuelKg = ac.GetFuelQuantity();
+            // Cache tank capacity from ratio when the tank has meaningful fuel in it.
+            if (ac.fuelLevel > 0.05f) _fuelMaxKg = fuelKg / ac.fuelLevel;
+            p.Add(Num("fuelKg", fuelKg));
+            p.Add(Num("fuelMax", _fuelMaxKg > 0f ? _fuelMaxKg : fuelKg * 1.2f));
+            p.Add(Num("fuelSec", fuelKg / Mathf.Max(0.3f, inp.throttle) * 1.6f));
             p.Add("\"inputs\":{" + Num("pitch", inp.pitch) + "," + Num("roll", inp.roll) + "," +
                   Num("yaw", inp.yaw) + "," + Num("throttle", inp.throttle) + "}");
             int sel;
@@ -106,6 +147,7 @@ namespace GlassPanel
             p.Add("\"objectives\":[" + BuildObjectives() + "]");
 
             return "{" + string.Join(",", p.ToArray()) + "}";
+            } catch { LocalAircraft = null; return null; } // destroyed object → clear and wait for respawn
         }
 
         // Total engine thrust in kN across all engines.
@@ -192,11 +234,18 @@ namespace GlassPanel
                 foreach (Unit u in targets)
                 {
                     if (u == null || n >= 12) continue;
+                    bool locked = n == 0; // first entry = primary locked target
                     n++;
                     Vector3 d = u.transform.position - ac.transform.position;
                     float rng = d.magnitude;
                     float brg = (Mathf.Atan2(d.x, d.z) * RAD_TO_DEG + 360f) % 360f;
-                    items.Add("{" + Num("brg", brg) + "," + Num("rng", rng) + "," + Str("type", "H") + "}");
+                    float altFt = u.transform.position.GlobalY() * M_TO_FT;
+                    float spdKn = u.speed * MS_TO_KN;
+                    string uName = "";
+                    try { uName = u.definition != null ? (u.definition.code ?? u.definition.unitName ?? "") : ""; } catch { }
+                    items.Add("{" + Num("brg", brg) + "," + Num("rng", rng) + "," + Str("type", "H") + ","
+                        + Num("alt", altFt) + "," + Num("spd", spdKn) + "," + Str("name", uName) + ","
+                        + Bool("locked", locked) + "}");
                 }
                 return string.Join(",", items.ToArray());
             }
@@ -343,6 +392,28 @@ namespace GlassPanel
         private static string Int(string k, int v) => "\"" + k + "\":" + v.ToString(CultureInfo.InvariantCulture);
         private static string Bool(string k, bool v) => "\"" + k + "\":" + (v ? "true" : "false");
         private static string Str(string k, string v) => "\"" + k + "\":\"" + Esc(v) + "\"";
-        private static string Esc(string s) => s == null ? "" : s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        private static string Esc(string s)
+        {
+            if (s == null) return "";
+            var sb = new System.Text.StringBuilder(s.Length + 8);
+            foreach (char c in s)
+            {
+                switch (c)
+                {
+                    case '\\': sb.Append("\\\\"); break;
+                    case '"':  sb.Append("\\\""); break;
+                    case '\n': sb.Append("\\n");  break;
+                    case '\r': sb.Append("\\r");  break;
+                    case '\t': sb.Append("\\t");  break;
+                    case '\b': sb.Append("\\b");  break;
+                    case '\f': sb.Append("\\f");  break;
+                    default:
+                        if (c < 0x20) sb.Append("\\u").Append(((int)c).ToString("X4"));
+                        else          sb.Append(c);
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
     }
 }
